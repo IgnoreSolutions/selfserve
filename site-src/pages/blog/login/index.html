@@ -1,0 +1,23 @@
+<script>
+        document.title = "Login - VSAT ResQ"
+        $("#nav-login").addClass("active");
+        $("#login-text").addClass("active");
+</script>
+
+<script src='http://vsatresq.com/scripts/bloglogin.js'></script>
+
+<form name="loginform" action="javascript:;" onsubmit="doLogin(this);" method="post">
+    Username:<br>
+    <input id="username" type="text" name="username">
+    <br>
+    Password:<br>
+    <input type="password" name="password">
+    <br>
+    <input style='padding: 1px;' id="remember" type="checkbox" checked="true"> Remember Me?
+    <br>
+    <input type="submit" value="Login">
+    <!--<input style= type="button" onclick="doLogin();">Login</button>-->
+    <br>
+    <a href="http://vsatresq.com/blog/register">Register?</a>
+</form>
+<button class='authorized-only-hide' onclick="logout();">Logout</button>

@@ -1,0 +1,22 @@
+<script>
+    document.title = "Compose - VSAT ResQ"
+    $("#nav-blog").addClass("active");
+    $("#maincontentarea").addClass("w-100");
+</script>
+
+<script src="https://cdn.ckeditor.com/4.10.1/standard/ckeditor.js"></script>
+<script src='http://vsatresq.com/scripts/compose.js'></script>
+
+<div id="editorcontainer" class="h-100 w-100">
+    <div id="login-message">
+        <span>You must <a href="http://vsatresq.com/blog/login">login</a> to access this.</span>
+    </div>
+    <div id="edit-area" class="authorized-only-hide">
+        <input style='width: 100%' type="text" id="title_text" placeholder="Give your post a creative title."><br>
+        <textarea name='editor' class="editor" id="editor"></textarea>
+    </div>
+    <br>
+    <button type="button" id='preview-button' class="authorized-only-hide" onclick="previewButtonClick()">Preview</button> <button id='submit-button' class="authorized-only-hide" onclick="submitButtonClick()" type="button">Submit</button>
+    <br>
+    <br>
+</div>

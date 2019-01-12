@@ -1,0 +1,21 @@
+<script>
+    document.title = "Blog - VSAT ResQ"
+    $("#nav-blog").addClass("active");
+</script>
+<div class="col h-100" id="recents-area">
+        <h3>Recent Blog Posts</h3>
+        <script>
+            $.get("/blog/getpost?limit=20", function( data ) {
+                var resultingPosts = JSON.parse(data);
+                resultingPosts.posts.sort(function(a, b){
+                    return b.date - a.date;
+                });
+                resultingPosts.posts.forEach(element => {
+                    var div = $("<div>").attr('id', 'blog-post');
+                    var recentsArea = $("#recents-area");
+                    div.html(`<a href="/blog/viewpost.html?id=${element.id}">${element.title}</a><br>${element.author} - ${new Date(element.date).toDateString()}<hr>`);
+                    recentsArea.append(div);
+                });
+            });
+        </script>
+</div>
