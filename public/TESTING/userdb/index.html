@@ -65,28 +65,69 @@
         <div class="row h-100 align-items-center">
             <div id="maincontentarea" class="h-100">
                 <script>
-        document.title = "Login - VSAT ResQ"
-        $("#nav-login").addClass("active");
-        $("#login-text").addClass("active");
+
+function addNewUser()
+{
+    var _username = prompt("Enter the new user's username.", "undefined");
+    var _password = "password";
+    var _email = "email@default.com";
+
+    $.post("/TESTING/adduser", {username: _username, password: _password, email: _email}, function(result, status, xhr) {
+        console.log(result);
+    });
+}
+
+function removeUser()
+{
+    var __id = prompt("Enter the ID you want to delete.", "");
+    $.post("/TESTING/removeuser", {_id: __id}, function(result, status, xhr) {
+        updateList();
+    });
+}
+
+function clearList()
+{
+    $("dt").remove();
+    $("dd").remove();
+}
+
+function updateList()
+{
+    clearList();
+
+    $.get("/TESTING/userlist", function(result, status, xhr) {
+        var asObj = JSON.parse(result);
+        asObj.forEach(element => {
+            var _user, _email, _signup, __id;
+            _user = $("<dt></dt>").text(element.username);
+            _email = $("<dd></dd>").text("- " + element.email);
+            _signup = $("<dd></dd>").text("- " + element.signup_date);
+            __id = $("<dd></dd>").text("- " + element._id);
+
+            $("#userdb_list").append(_user);
+            $("#userdb_list").append(_email);
+            $("#userdb_list").append(_signup);
+            $("#userdb_list").append(__id);
+        });
+        
+        console.log(result);
+    });
+}
+
+window.onload = function() {updateList();}
+
 </script>
 
-<script src='http://vsatresq.com/scripts/bloglogin.js'></script>
-
-<form name="loginform" action="javascript:;" onsubmit="doLogin(this);" method="post">
-    Username:<br>
-    <input id="username" type="text" name="username">
-    <br>
-    Password:<br>
-    <input type="password" name="password">
-    <br>
-    <input style='padding: 1px;' id="remember" type="checkbox" checked="true"> Remember Me?
-    <br>
-    <input type="submit" value="Login">
-    <!--<input style= type="button" onclick="doLogin();">Login</button>-->
-    <br>
-    <a href="http://vsatresq.com/blog/register">Register?</a>
-</form>
-<button class='authorized-only-hide' onclick="logout();">Logout</button>
+<div class="col h-100" id="userdb_root" onload="updateList()">
+    <h3>User DB Testing</h3>
+    <dl id="userdb_list">
+    </dl>
+    <form>
+        <button type="button" onclick="addNewUser()">New User</button>
+        <button type="button" onclick="removeUser()">Remove User</button>
+        <button type="button" onclick="updateList()">Reload Database</button>
+    </form>
+</div>
             </div>
             <!--
             <div id="sidenav" class="col-2 d-none d-md-block h-100">

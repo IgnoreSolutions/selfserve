@@ -1,9 +1,10 @@
 import express = require("express");
-import { SQLStatus, MySQLInstance } from "./SQLRequests";
-import mongo = require('mongodb').MongoClient;
-import { MysqlError } from "mysql";
 /*import { callbackify } from "util";*/
 import TokenStore from "./TokenStore";
+import { MongoDBInstance, MongoDBStatus } from "./MongoRequests";
+import { isBuffer } from "util";
+import { stringify } from "querystring";
+import { json } from "body-parser";
 
 export enum UserPower {
     Admin = 1,
@@ -19,7 +20,8 @@ export class User implements IUser {
     public password: string | undefined = undefined;
 
     constructor(_id: number, _username: string, _password: string | undefined, _signup_date: Date, _email: string, _power: UserPower) {
-        this.id = _id; this.username = _username; this.password = _password!; this.signup_date = _signup_date; this.email = _email; this.power = _power;
+        this.id = -1;
+        this.username = _username; this.password = _password!; this.signup_date = _signup_date; this.email = _email; this.power = _power;
     }
 }
 
@@ -50,116 +52,78 @@ export abstract class ServerAuth {
     // TODO: fix this accessor
     public static tokenStore: TokenStore = new TokenStore();
     
-    private static sql: MySQLInstance = new MySQLInstance({
-        host: 'localhost',
-        user: 'mike',
-        // TODO: OBFUSCATE PASSWORD PLEASE
-        password: 'Papabear123',
-        database: 'blogusers',
-    });
-    
+    private static mongoBackend: MongoDBInstance;
+
+    public static initServerAuth()
+    {
+        this.mongoBackend = new MongoDBInstance("testdb", "users");
+    }
+
     public static getUserInformation(res: express.Response, callback: (result: IUser) => void, username?: string, id?: number) {
         let verb = 'username';
         if (id !== undefined) {
             verb = 'id';
         }
-        ServerAuth.sql.query(`SELECT * FROM users WHERE ${verb} = ${(verb === 'username') ? `'${username}'` : id};`, (status: SQLStatus, err: MysqlError, result: any) => {
-            if(err) { console.log(err); return; }
-            const toReturn: User = new User(
-                result[0].id,
-                result[0].username,
-                undefined,
-                result[0].signup_date,
-                result[0].email,
-                result[0].power)
-            ;
-            /*
-            {
-                id: result[0].id,
-                username: result[0].username,
-                signup_date: Date.parse(result[0].signup_date),
-                email: result[0].email,
-                power: result[0].power,
-            };*/
-            callback(toReturn);
-        });
+        let result: IUser | undefined = undefined;
+        if(username === undefined) //by ID
+            result = this.mongoBackend.query("_id", stringify(id));
+        else //by username
+            result = this.mongoBackend.query("username", stringify(username));
+        callback(result!);
     }
 
     public static getUserById(id: number, callback: (result: IUser) => void) {
-        ServerAuth.sql.query(`SELECT * FROM users WHERE id = ${id};`, (status: SQLStatus, err: MysqlError, result: any) => {
-            if(err) { console.log(err); return; }
-            const toReturn: User = new User(
-                result[0].id,
-                result[0].username,
-                undefined,
-                result[0].signup_date,
-                result[0].email,
-                result[0].power)
-            ;
-            callback(toReturn);
-        });
+        let result: IUser = this.mongoBackend.query("_id", stringify(id));
+        callback(result);
     }
 
     public static getUserByName(username: string, callback: (result: IUser) => void) {
-        ServerAuth.sql.query(`SELECT * FROM users WHERE username = '${username}';`, (status: SQLStatus, err: MysqlError, result: any) => {
-            if(err) { console.log(err); return; }
-            const toReturn: IUser = {
-                id: result[0].id,
-                username: result[0].username,
-                password: undefined,
-                signup_date: new Date(result[0].signup_date),
-                email: result[0].email,
-                power: result[0].power,
-            };
-            callback(toReturn);
-        });
+        let result: IUser = this.mongoBackend.query("username", username);
+        callback(result);
     }
 
-    public static doLogin(res: express.Response, username: string, password: string, callback: (status: SQLStatus, err?: MysqlError) => void) {
-        ServerAuth.sql.query("SELECT username, password FROM users WHERE username = '" + username + "'", (status: SQLStatus, err: MysqlError, result: any) => {
-            if (err) { callback(SQLStatus.Error, err); }
-            if (result) {
-                if (result[0].username === username && result[0].password === password) {
-                    const newToken = ServerAuth.tokenStore.generateToken(username);
+    public static doLogin(res: express.Response, username: string, password: string, callback: (status: MongoDBStatus, err?: any) => void) {
+        let result: IUser = this.mongoBackend.query("username", username);
 
-                    res.set('Authorization', newToken.token);
-                    res.status(200).send(`Logged in as ${username} successfully.`);
-                    callback(SQLStatus.OK);
-                }
-            } else {
-                res.status(400).send('User not found/credential mismatch.');
-                callback(SQLStatus.Error, err);
+        if(result)
+        {
+            if(result.username === username && result.password === password)
+            {
+                const newToken = ServerAuth.tokenStore.generateToken(username);
+                res.set('Authorization', newToken.token);
+                res.status(200).send(`Logged in as ${username} successfully.`);
+                callback(MongoDBStatus.OK);
             }
-        });
+        }
+        else
+        {
+            res.status(400).send('User not found/credential mismatch');
+            callback(MongoDBStatus.Error, "User not found/credential mismatch. " + result);
+        }
     }
 
     public static registerUser(res: express.Response, username: string, password: string, email: string) {
         if (username.trim() && password.trim() && email.trim())
         {
-            const sqlQuery = `INSERT INTO \`users\` (\`id\`,\`username\`,\`password\`,\`email\`,\`signup_date\`,\`power\`) VALUES (NULL, "${username}", "${password}", "${email}", NOW(), 3);`;
-            ServerAuth.sql.query(sqlQuery, (status: SQLStatus, err: MysqlError, result: any) => {
-                if (err) {res.status(400).send(err); }
-                else
-                {
-                    res.status(200).send('Registered successfully!');
-                    console.log(`registered new user: ${username} (${email})`);
-                }
-            });
+            let newUser: IUser = new User(-1, username, password, new Date(Date.now()), email, 3);
+            this.mongoBackend.insertRecord(newUser);
+            // TODO: status/callbacks
         }
     }
 
     public static verifyUserPower(username: string, token: string, callback: (username: string, power: number) => void) {
         if (username.trim() && token.trim()) {
             if (ServerAuth.tokenStore.verifyToken(username, token)) {
-                const sqlQuery = "SELECT username,power FROM `users` WHERE username = '" + username + "'";
-                ServerAuth.sql.query(sqlQuery, (status: SQLStatus, err: MysqlError, result: any) => {
-                    if (err == null) {
-                        if (result[0].username === username) {
-                            callback(username, result[0].power);
-                        }
-                    }
-                    else { callback(username, -1); }
-                });
+                let result: IUser = this.mongoBackend.query("username", username);
+                if(result)
+                {
+                    if(result.username === username)
+                        callback(username, result.power);
+                }
+                else
+                {
+                    callback(username, -1);
+                }
             }
         }
     }
@@ -168,174 +132,95 @@ export abstract class ServerAuth {
         return Math.floor(Math.random() * Math.floor(maxValue));
     }
 
-    /*
-    private static generateToken(username: string) {
-        const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ123456789.?!@";
-        let result = "";
-        const maxTokenSize = 20;
-
-        for (let i = 0; i < maxTokenSize; i++) {
-            result += characters[ServerAuth.getRandomInt(characters.length)];
-        }
-
-        const fs = require('fs');
-        if (!fs.existsSync("./user_tokens/" + username)) //skip generating new token if one already exists
-        {
-            const stream = fs.createWriteStream("./user_tokens/" + username);
-            console.log("writing to disk");
-            stream.once('open', (fd: any) => {
-                stream.write(result);
-                stream.end();
-            });
-        }
-        else {
-            const data: string = fs.readFileSync(`./user_tokens/${username}`, { encoding: "utf-8" });
-            console.log(`read token for ${username}`);
-            return data;
-        }
-
-        return result;
-    }
-    */
-
-    
-    /**
-     * Verifies a token based on username and token.
-     * 
-     * @param _username Username
-     * @param _token token on file
-     * 
-     * Returns true is the token is correct and returns false if not.
-     */
-    /*
-    public static verifyToken(_username: string, _token: string): boolean {
-        const fs = require('fs');
-        if (fs.existsSync(`./user_tokens/${_username}`)) {
-            const diskToken: string = fs.readFileSync(`./user_tokens/${_username}`, { encoding: 'utf-8' });
-            if (diskToken.trim()) {
-                if (_token === diskToken) { return true; }
-            }
-        }
-
-        return false;
-    }
-    */
-
     public static makePost(res: express.Response, userPosting: IUser, _token: string, post: IBlogPost): void {
-        const queryString = `INSERT INTO \`blogdata\` (\`id\`,\`title\`,\`postfile\`,\`date\`,\`author\`,\`email\`) VALUES (NULL, "${post.title}", "${post.message}", NOW(), "${post.author}", "${(<IUser>post.author).email}");`;
-        this.sql.query(queryString, (status: SQLStatus, err: MysqlError, result: any) => 
+        if(ServerAuth.tokenStore.verifyToken(userPosting.username, _token))
         {
-            if(err){  res.status(400).send(`Error: ${err}`); }
-            else {
-                post.id = result.insertId;
-                post.date = new Date(Date.now());
-                res.status(200).send(JSON.stringify(post));
-                console.log('new post! ' + post.title);
-            }
-        });
-         
+            this.mongoBackend.changeCollection("blog");
+            let toBeInserted: IBlogPost = post;
+            toBeInserted.date = new Date(Date.now());
+            toBeInserted.author = userPosting.username;
+            this.mongoBackend.insertRecord(post);
+            this.mongoBackend.changeCollection("users");
+        }
     }
 
     public static editPost(res: express.Response, userEditing: IUser, _token: string, updatedPost: IBlogPost) {
-        const queryString = `UPDATE \`blogdata\` SET \`postfile\` = '${updatedPost.message}', \`title\` = '${updatedPost.title}' WHERE \`id\` = ${updatedPost.id}`;
-        this.sql.query(queryString, (status: SQLStatus, err: MysqlError, result: any) => {
-            if(err){  res.status(400).send(result);}
-            else
+        if(ServerAuth.tokenStore.verifyToken(userEditing.username, _token))
+        {
+            this.mongoBackend.changeCollection("blog");
+            let postToBeEdited: IBlogPost = this.mongoBackend.query("_id", stringify(updatedPost.id));
+            if(postToBeEdited)
             {
+                this.mongoBackend.updateRecord(postToBeEdited, updatedPost);
                 res.status(200).send(JSON.stringify(updatedPost));
             }
-        });
-         
+            else
+                res.status(400).send("Error while editing.");
+            this.mongoBackend.changeCollection("users");
+        }
     }
 
     public static deletePost(res: express.Response, userDeleting: IUser, _token: string, postID: number) {
-        const queryString = `DELETE FROM \`blogdata\` WHERE id = ${postID};`;
-        this.sql.query(queryString, (status: SQLStatus, err: MysqlError, result: any) => {
-            if(err) {  res.status(400).send(result);}
-            else
-            {
-                res.status(200).send(':ok_hand:');
-            }
-        });
-         
+        if(ServerAuth.tokenStore.verifyToken(userDeleting.username, _token))
+        {
+            this.mongoBackend.changeCollection("blog");
+            this.mongoBackend.delete("_id", stringify(postID));
+            res.status(200).send("OK"); // TODO
+            this.mongoBackend.changeCollection("users");
+        }
     }
 
     public static getLatestPosts(limit: number = 20, res: express.Response) {
-        const queryString = `SELECT * FROM \`blogdata\` LIMIT ${limit};`;
-        this.sql.query(queryString, (status: SQLStatus, err: MysqlError, result: any) => {
-            if(err) {   res.status(400).send(err); }
-            else {
-                const postsToReturn = { posts: Array<IBlogPost>() };
-                for(let i = 0; i < limit; i++) 
-                {
-                    if(result[i] !== undefined) {
-                        postsToReturn.posts.push({
-                            title: result[i].title,
-                            message: result[i].postfile,
-                            author: result[i].author,
-                            id: result[i].id,
-                            date: new Date(result[i].date)
-                        });
-                    }
-                }
-                if(postsToReturn != null) {
-                    res.status(200).send(JSON.stringify(postsToReturn));
-                }
-                else
-                    res.status(400).send(err);
-            }
-        });
+        this.mongoBackend.changeCollection("blog");
+        const postsToReturn = this.mongoBackend.returnN(limit);
+        console.log(postsToReturn); // TODO:
+        console.log("TODO: this");
+        res.status(200).send(JSON.stringify(postsToReturn));
+        this.mongoBackend.changeCollection("users");
     }
 
     public static getPostByID(postID: number, res: express.Response) {
         try
         {
-        const queryString = `SELECT * FROM \`blogdata\` WHERE id =${postID};`;
-        this.sql.query(queryString, (status: SQLStatus, err: MysqlError, result: any) => {
-            if(err) {  res!.status(400).send(result);}
+            this.mongoBackend.changeCollection("blog");
+            let blogPost: IBlogPost = this.mongoBackend.query("_id", stringify(postID));
+            
+            if(blogPost)
+            {
+                this.mongoBackend.changeCollection("users");
+                let userPosting: IUser = this.mongoBackend.query("username", stringify(blogPost.author));
+                if(userPosting)
+                {
+                    blogPost.author = userPosting;
+                    res.status(200).send(JSON.stringify(blogPost));
+                }
+                else
+                {
+                    res.status(400).send('user who posted not found');
+                }
+            }
             else
             {
-                this.getUserByName(result[0].author, (resUser: IUser) => {
-                    const post: IBlogPost = {
-                        title: result[0].title,
-                        message: result[0].postfile,
-                        author: resUser,
-                        date: new Date(result[0].date),
-                        id: result[0].id,
-                    };
-                    res.status(200).send(JSON.stringify(post));
-                });
+                res.status(400).send('Post not found.');
             }
-        });
-         
         }
         catch(exc) {console.log('getPostByID', exc);}
+
+        this.mongoBackend.changeCollection("users");
     }
 
     public static getPostsByUsername(res: express.Response, user: IUser, limit: number) {
-        const queryString = `SELECT * FROM \`blogdata\` WHERE author = '${user.username}'; `;
-        this.sql.query(queryString, (status: SQLStatus, err: MysqlError, result: any) => {
-            if(err) {   res.status(400).send(err); }
-            else {
-                const postsToReturn = { posts: Array<IBlogPost>() };
-                for(let i = 0; i < limit; i++) 
-                {
-                    if(result[i] !== undefined) {
-                        postsToReturn.posts.push({
-                            title: result[i].title,
-                            message: result[i].postfile,
-                            author: user,
-                            id: result[i].id,
-                            date: new Date(result[i].date)
-                        });
-                    }
-                }
-                if(postsToReturn != null) {
-                    res.status(200).send(JSON.stringify(postsToReturn));
-                }
-                else
-                    res.status(400).send(err);
-            }
-        });
+        this.mongoBackend.changeCollection("blog");
+        const returnedPosts = this.mongoBackend.returnNByKey(limit, "author", user.username);
+        if(returnedPosts != undefined)
+        {
+            res.status(200).send(JSON.stringify(returnedPosts));
+        }
+        else
+        {
+            res.status(400).send("Nope");
+        }
+        this.mongoBackend.changeCollection("users");
+        // TODO: error checking/handling
     }
 }

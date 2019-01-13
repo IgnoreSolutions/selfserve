@@ -126,7 +126,7 @@ router.post('/userlist', (req, res) => {
                     inner += `<li>${cur.id}: ${cur.username} / ${cur.email} / Signup Date: ${cur.signup_date}</li>`;
                 }
                 res.status(200).send(`<ul>${inner}</ul>`);
-            });
+            });,
             */
         }
         else {
@@ -239,6 +239,6 @@ router.get('/getpost', (req, res) => {
         BlogBackend_1.ServerAuth.getLatestPosts(limit, res);
     }
 });
-exports.BlogController = router;
+exports.Controller = router;
 exports.Endpoint = '/blog';
 //# sourceMappingURL=BlogController.js.map

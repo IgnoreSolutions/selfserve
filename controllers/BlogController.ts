@@ -135,7 +135,7 @@ router.post('/userlist', (req: Request, res: Response) => {
                     inner += `<li>${cur.id}: ${cur.username} / ${cur.email} / Signup Date: ${cur.signup_date}</li>`;
                 }
                 res.status(200).send(`<ul>${inner}</ul>`);
-            });
+            });,
             */
         }
         else { res.status(401).send("Not authorized."); }
@@ -265,5 +265,5 @@ router.get('/getpost', (req: Request, res: Response) => {
 
 
 
-export const BlogController: Router = router;
+export const Controller: Router = router;
 export const Endpoint: string = '/blog';

@@ -1,0 +1,64 @@
+<script>
+
+function addNewUser()
+{
+    var _username = prompt("Enter the new user's username.", "undefined");
+    var _password = "password";
+    var _email = "email@default.com";
+
+    $.post("/TESTING/adduser", {username: _username, password: _password, email: _email}, function(result, status, xhr) {
+        console.log(result);
+    });
+}
+
+function removeUser()
+{
+    var __id = prompt("Enter the ID you want to delete.", "");
+    $.post("/TESTING/removeuser", {_id: __id}, function(result, status, xhr) {
+        updateList();
+    });
+}
+
+function clearList()
+{
+    $("dt").remove();
+    $("dd").remove();
+}
+
+function updateList()
+{
+    clearList();
+
+    $.get("/TESTING/userlist", function(result, status, xhr) {
+        var asObj = JSON.parse(result);
+        asObj.forEach(element => {
+            var _user, _email, _signup, __id;
+            _user = $("<dt></dt>").text(element.username);
+            _email = $("<dd></dd>").text("- " + element.email);
+            _signup = $("<dd></dd>").text("- " + element.signup_date);
+            __id = $("<dd></dd>").text("- " + element._id);
+
+            $("#userdb_list").append(_user);
+            $("#userdb_list").append(_email);
+            $("#userdb_list").append(_signup);
+            $("#userdb_list").append(__id);
+        });
+        
+        console.log(result);
+    });
+}
+
+window.onload = function() {updateList();}
+
+</script>
+
+<div class="col h-100" id="userdb_root" onload="updateList()">
+    <h3>User DB Testing</h3>
+    <dl id="userdb_list">
+    </dl>
+    <form>
+        <button type="button" onclick="addNewUser()">New User</button>
+        <button type="button" onclick="removeUser()">Remove User</button>
+        <button type="button" onclick="updateList()">Reload Database</button>
+    </form>
+</div>
