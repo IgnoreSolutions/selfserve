@@ -36,7 +36,6 @@ export interface IBlogPost {
     message: string;
     author: IUser | string;
     date: Date;
-    visibility: boolean;
 
     /**
      * Post ID
@@ -274,8 +273,7 @@ export abstract class ServerAuth {
                             message: result[i].postfile,
                             author: result[i].author,
                             id: result[i].id,
-                            date: new Date(result[i].date),
-                            visibility: true /*TODO: fix this*/
+                            date: new Date(result[i].date)
                         });
                     }
                 }
@@ -327,8 +325,7 @@ export abstract class ServerAuth {
                             message: result[i].postfile,
                             author: user,
                             id: result[i].id,
-                            date: new Date(result[i].date),
-                            visibility: true
+                            date: new Date(result[i].date)
                         });
                     }
                 }
