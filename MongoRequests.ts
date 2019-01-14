@@ -1,3 +1,5 @@
+import { callbackify } from "util";
+
 export enum MongoDBStatus {
     OK, Error
 }
@@ -16,11 +18,13 @@ export class MongoDBInstance {
     {
         this.currentCollection = collectionName;
         this.currentDatabase = databaseName;
+        /*
         mongo.connect(this.url, (err: any, db: any) => {
             if(err) throw err;
             console.log("Database created!");
             db.close();
         });
+        */
     }
 
     public query(keyName: string, keyValue: string): any {
@@ -83,7 +87,7 @@ export class MongoDBInstance {
         });
     }
 
-    public updateRecord(queryObj: any, newValues: any) 
+    public updateRecord(queryObj: any, newValues: any, callback: (err: any, res: any) => void) 
     {
         var updateQuery = {$set:newValues};
         mongo.connect(this.url, (err: any, db: any) => {
@@ -91,8 +95,7 @@ export class MongoDBInstance {
             var dbo = db.db(this.currentDatabase);
             dbo.collection(this.currentCollection).updateOne(queryObj, updateQuery, (err: any, res: any) => {
                 if(err) throw err;
-                console.log("updated row with new values: ", newValues);
-                console.log("\n\n", res);
+                callback(err, res);
                 db.close();
             });
 
@@ -156,14 +159,14 @@ export class MongoDBInstance {
         });
     }
 
-    public insertRecord(obj: any)
+    public insertRecord(obj: any, callback: (err: any, result: any) => void)
     {
         mongo.connect(this.url, (err: any, db: any) => {
             if(err) throw err;
             var dbo = db.db(this.currentDatabase);
             dbo.collection(this.currentCollection).insertOne(obj, (err: any, res: any) => {
                 if(err) throw err;
-                console.log('inserted one object');
+                callback(err, res);
                 db.close();
             });
         });

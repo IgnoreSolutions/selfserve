@@ -6,6 +6,8 @@ import { isBuffer } from "util";
 import { stringify } from "querystring";
 import { json } from "body-parser";
 
+var fx = require("money");
+
 export enum UserPower {
     Admin = 1,
     User = 2,
