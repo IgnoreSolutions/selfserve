@@ -15,18 +15,21 @@ class MongoDBInstance {
         this.url = "mongodb://localhost:27017/";
         this.currentCollection = collectionName;
         this.currentDatabase = databaseName;
-        mongo.connect(this.url, (err, db) => {
-            if (err)
-                throw err;
+        /*
+        mongo.connect(this.url, (err: any, db: any) => {
+            if(err) throw err;
             console.log("Database created!");
             db.close();
         });
+        */
     }
     query(keyName, keyValue) {
         mongo.connect(this.url, (err, db) => {
             if (err)
                 throw err;
             var dbo = db.db(this.currentDatabase);
+            if (keyName === "_id")
+                keyValue = oid(keyValue);
             var query = { [keyName]: keyValue };
             dbo.collection(this.currentCollection).find(query).toArray((err, res) => {
                 if (err)
@@ -48,7 +51,9 @@ class MongoDBInstance {
             if (err)
                 throw err;
             var dbo = db.db(this.currentDatabase);
-            var query = { [byKey]: oid(keyValue) };
+            if (byKey === "_id")
+                keyValue = oid(keyValue);
+            var query = { [byKey]: keyValue };
             console.log(query);
             dbo.collection(this.currentCollection).deleteOne(query, (err, res) => {
                 console.log("send delete request");
@@ -77,7 +82,7 @@ class MongoDBInstance {
             db.close();
         });
     }
-    updateRecord(queryObj, newValues) {
+    updateRecord(queryObj, newValues, callback) {
         var updateQuery = { $set: newValues };
         mongo.connect(this.url, (err, db) => {
             if (err)
@@ -86,8 +91,7 @@ class MongoDBInstance {
             dbo.collection(this.currentCollection).updateOne(queryObj, updateQuery, (err, res) => {
                 if (err)
                     throw err;
-                console.log("updated row with new values: ", newValues);
-                console.log("\n\n", res);
+                callback(err, res);
                 db.close();
             });
             db.close();
@@ -149,7 +153,7 @@ class MongoDBInstance {
             });
         });
     }
-    insertRecord(obj) {
+    insertRecord(obj, callback) {
         mongo.connect(this.url, (err, db) => {
             if (err)
                 throw err;
@@ -157,7 +161,7 @@ class MongoDBInstance {
             dbo.collection(this.currentCollection).insertOne(obj, (err, res) => {
                 if (err)
                     throw err;
-                console.log('inserted one object');
+                callback(err, res);
                 db.close();
             });
         });

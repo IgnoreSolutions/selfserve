@@ -7,6 +7,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const TokenStore_1 = __importDefault(require("./TokenStore"));
 const MongoRequests_1 = require("./MongoRequests");
 const querystring_1 = require("querystring");
+var fx = require("money");
 var UserPower;
 (function (UserPower) {
     UserPower[UserPower["Admin"] = 1] = "Admin";

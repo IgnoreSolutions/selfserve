@@ -1,8 +1,7 @@
 import express = require("express");
 import TokenStore from "./TokenStore"
 import {MongoDBInstance, MongoDBStatus} from "./MongoRequests";
-import {stringify} from "querystring";
-import { ObjectID } from "bson";
+var ObjectID = require("mongodb").ObjectID;
 
 export class ShopItem implements IShopItem {
     public price: number;
