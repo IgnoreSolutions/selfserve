@@ -1,7 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const MongoRequests_1 = require("./MongoRequests");
-var ObjectID = require("mongodb").ObjectID;
 class ShopItem {
     constructor() {
         this.price = 0;

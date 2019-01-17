@@ -119,14 +119,16 @@ hr {
   width: auto !important;
   display: block;
   padding: 20px;
-  max-height: 12em;
+  max-height: 100%;
+  /* TODO: figure out how to make the logo img stand out. do i need to vectorize it??? */
 }
 
 .logo-container {
   background-color: #0d1a46;
   width: 100%;
-  //background-image: linear-gradient(to right, rgba(255, 255, 255, 1.0), rgba(255, 255, 255, 0.2)), url('../images/satdish1.jpg');
-  background-image: url('../images/banner.png');
+  /*background-image: linear-gradient(to right, rgba(255, 255, 255, 1.0), rgba(255, 255, 255, 0.2)), url('../images/satdish1.jpg');*/
+  min-height: 350px;
+  /*background-image: url('../images/banner.png');*/
   background-repeat: no-repeat;
   background-size: cover;
   position: relative;

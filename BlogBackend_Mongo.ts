@@ -108,8 +108,10 @@ export abstract class ServerAuth {
         if (username.trim() && password.trim() && email.trim())
         {
             let newUser: IUser = new User(-1, username, password, new Date(Date.now()), email, 3);
-            this.mongoBackend.insertRecord(newUser);
-            // TODO: status/callbacks
+            this.mongoBackend.insertRecord(newUser, (err: any, res: any) => {
+                if(err) throw err;
+                res.status(200).send(JSON.stringify(newUser));
+            });
         }
     }
 
@@ -141,7 +143,10 @@ export abstract class ServerAuth {
             let toBeInserted: IBlogPost = post;
             toBeInserted.date = new Date(Date.now());
             toBeInserted.author = userPosting.username;
-            this.mongoBackend.insertRecord(post);
+            this.mongoBackend.insertRecord(post, (err: any, result: any) => {
+                if(err) throw err;
+                res.status(200).send(JSON.stringify(toBeInserted));
+            });
             this.mongoBackend.changeCollection("users");
         }
     }
@@ -153,8 +158,10 @@ export abstract class ServerAuth {
             let postToBeEdited: IBlogPost = this.mongoBackend.query("_id", stringify(updatedPost.id));
             if(postToBeEdited)
             {
-                this.mongoBackend.updateRecord(postToBeEdited, updatedPost);
-                res.status(200).send(JSON.stringify(updatedPost));
+                this.mongoBackend.updateRecord(postToBeEdited, updatedPost, (err: any, res: any) => {
+                    if(err) throw err;
+                    res.status(200).send(JSON.stringify(updatedPost));
+                });
             }
             else
                 res.status(400).send("Error while editing.");

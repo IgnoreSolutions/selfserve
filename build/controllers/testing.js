@@ -37,8 +37,11 @@ router.post('/edituser', (req, res) => {
         var queryObj = mongo.query("_id", _userID);
         if (queryObj) {
             var newUserObj = JSON.parse(_newUserObject);
-            mongo.updateRecord(queryObj, newUserObj);
-            res.status(200).send("Updated.");
+            mongo.updateRecord(queryObj, newUserObj, (err, res) => {
+                if (err)
+                    throw err;
+                res.status(200).send("Updated.");
+            });
         }
         else {
             res.status(400).send("Couldn't update user.");
