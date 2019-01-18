@@ -203,6 +203,7 @@ selfserve.auth.loginAs = function loginAs(_username, _password, _remember, callb
             var _token = xhr.getResponseHeader('Authorization');
             if(status == "success")
             {
+                // TODO: strip password parameter
                 selfserve.global.currentUser = result;
                 if(callback)    callback(result, status, xhr); // TODO: does this need shit?
                 if(_remember === true)
