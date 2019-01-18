@@ -1,16 +1,22 @@
 import { Router, Request, Response } from 'express';
-import { ServerAuth, IUser, User, IBlogPost } from '../BlogBackend';
-import { SQLStatus, MySQLInstance } from '../SQLRequests';
-import { MysqlError } from 'mysql';
+import { ServerAuth, IUser, User, IBlogPost } from '../BlogBackend_Mongo';
 import expressWs = require('express-ws');
+import { MongoDBStatus } from '../MongoRequests';
 
 const router: Router = Router();
 
 router.post('/loginnode', (req: Request, res: Response) => {
-    if (req.body.username != null) {
+    console.log(req.body.username);
+    console.log(req.body.password);
+    if (req.body.username !== null) {
+        console.log("Logging in");
         ServerAuth.doLogin(res, req.body.username, req.body.password, (status, err) =>
         {
-            if (err){throw err; }
+            console.log("Request complete");
+            if(status === MongoDBStatus.OK)
+            {
+                console.log('logged in ok');
+            }
         });
     }
 });
@@ -21,7 +27,9 @@ router.post('/tokencheck', (req: Request, res: Response) => {
         const token = req.body.token;
         if(ServerAuth.tokenStore.verifyToken(username, token))
         {
-            res.status(200).send('OK');
+            ServerAuth.getUserByName(username, (result: IUser) => {
+                if(result) res.status(200).send(JSON.stringify(result));
+            });
         }
         else
             res.status(401).send('Unauthorized');

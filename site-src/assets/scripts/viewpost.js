@@ -1,45 +1,48 @@
-var globalPostObject = undefined;
+/**
+ * About viewpost.js
+ * 
+ * viewpost.js is designed to encompass any and all functions needed for 
+ * retrieving and viewing posts from the blog database.
+ * 
+ * Created by Mike Santiago
+ * Copyright (C) 2018
+ * 
+ * DO NOT REDISTRIBUTE!
+ */
 
-var getUrlParameter = function getUrlParameter(sParam) {
-    var sPageURL = decodeURIComponent(window.location.search.substring(1)),
-        sURLVariables = sPageURL.split('&'),
-        sParameterName,
-        i;
-
-    for (i = 0; i < sURLVariables.length; i++) {
-        sParameterName = sURLVariables[i].split('=');
-
-        if (sParameterName[0] === sParam) {
-            return sParameterName[1] === undefined ? true : sParameterName[1];
-        }
-    }
-
-    return null;
+selfserve.prototype.viewpost = {
+    globalPostObject = undefined,
+    titleSuffix = "Psych Cat Blog"
 };
 
 window.onload = function () {
     if (getUrlParameter('id')) {
-        var postID = parseInt(getUrlParameter('id'))
-        getPost(postID);
-        checkPower();
+        var postID = parseInt(selfserve.auth.getUrlParameter('id'))
+        selfserve.viewpost.getPost(postID);
+        selfserve.auth.checkPower();
     }
     else
         $("#maincontentarea").append('Bad post ID.');
 };
 
-function getPost(postID) {
-    $.get(`http://104.248.115.9/blog/getpost?id=${postID}`, function (result, status) {
+/**
+ * Retrieves a post and anything needed along with it given a valid 
+ * PostID.
+ */
+selfserve.viewpost.prototype.getPost = function getPost(postID) {
+    $.get(`/blog/getpost?id=${postID}`, function (result, status) {
         var postObject = JSON.parse(result);
         globalPostObject = postObject;
 
-        $.get(`http://104.248.115.9/blog/avatar`, {username: postObject.author.username}, function(result, status, xhr)
+        $.get(`/blog/avatar`, {username: postObject.author.username}, function(result, status, xhr)
         {
             $("#avatar").attr("src",result);
         }).fail(function(){
+            // TODO: Actually include this ghost person 
             $("#avatar").attr("src", "https://static.licdn.com/scds/common/u/images/themes/katy/ghosts/person/ghost_person_200x200_v1.png");
         });
 
-        $(document).attr("title", `${postObject.title} - VSAT ResQ Blog`);
+        $(document).attr("title", `${postObject.title} - ${selfserve.prototype.viewpost.titleSuffix}`);
 
         var parsedDate = new Date(postObject.date);
         var dateStr = `${parsedDate.getMinutes() == 0 ? parsedDate.toDateString() : parsedDate.toUTCString()}`;
@@ -80,27 +83,27 @@ function getPost(postID) {
     }).fail(function () {
         $("#maincontentarea").append("<h2>404</h2><br><br>That post couldn't be found! :(");
     });
-}
+};
 
-function showAdminContent() {
+selfserver.viewpost.prototype.showAdminContent = function showAdminContent() {
     
     $("#deletebutton").show();
     //$("#editbutton").show();
 }
 
-function editButtonClicked() {
-    var _username = getCookie("username");
-    var _token = getCookie("token");
+selfserver.viewpost.prototype.editButtonClicked = function editButtonClicked() {
+    var _username = selfserver.auth.getCookie("username");
+    var _token = selfserver.auth.getCookie("token");
     var _msgID = getUrlParameter('id');
 
-    window.location.href = `http://104.248.115.9/blog/compose?edit=true&id=${_msgID}`;
+    window.location.href = `/blog/compose?edit=true&id=${_msgID}`;
 }
 
-function deleteButtonClicked() {
+selfserver.viewpost.prototype.deleteButtonClicked = function deleteButtonClicked() {
     if (confirm(`Are you sure you want to delete this post? This cannot be undone or recovered.`)) {
         var _username = getCookie("username");
         var _token = getCookie("token");
-        $.post('http://104.248.115.9/blog/deletepost', { id: parseInt(getUrlParameter('id')), username: _username, token: _token }, function (result, status, xhr) {
+        $.post('/blog/deletepost', { id: parseInt(getUrlParameter('id')), username: _username, token: _token }, function (result, status, xhr) {
             if (status == "success") {
                 $("#post").hide();
                 $("#maincontentarea").append('The post has been deleted successfully.');
@@ -111,71 +114,8 @@ function deleteButtonClicked() {
         });
     }
 }
-/*
-function checkPower() {
-    var _username = getCookie("username");
-    var _token = getCookie("token");
-    $.post('http://104.248.115.9/blog/powercheck', { username: _username, token: _token }, function (result, status, xhr) {
-        var power = xhr.getResponseHeader('Power');
-        userPower = power;
-        if (userPower == 1)
-            showAdminContent();
-    });
-}
 
-function checkLoginCookie() {
-    var _username = getCookie("username");
-    var _token = getCookie("token");
-    if ($.trim(_username).length > 0) {
-        if ($.trim(_token).length > 0) {
-            $.post("http://104.248.115.9/blog/tokencheck", { username: _username, token: _token }, function (result, status, xhr) {
-                if (status == "success") {
-                    loggedIn = true;
-                    changeMainForLogin();
-                }
-                else {
-                    loggedIn = false;
-                    changeMainForNoLogin();
-                }
-            });
-        }
-        else {
-            setCookie("username", "", 1);
-            setCookie("token", "", 1);
-
-        }
-    }
-    else {
-        //not logged in.
-        setCookie("username", "", 1);
-        setCookie("token", "", 1);
-    }
-}
-
-function getCookie(cname) {
-    var name = cname + "=";
-    var decodedCookie = decodeURIComponent(document.cookie);
-    var ca = decodedCookie.split(';');
-    for (var i = 0; i < ca.length; i++) {
-        var c = ca[i];
-        while (c.charAt(0) == ' ') {
-            c = c.substring(1);
-        }
-        if (c.indexOf(name) == 0) {
-            return c.substring(name.length, c.length);
-        }
-    }
-    return "";
-}
-
-function setCookie(cname, cvalue, exdays) {
-    var d = new Date();
-    d.setTime(d.getTime() + (exdays * 24 * 60 * 60 * 1000));
-    var expires = "expires=" + d.toUTCString();
-    document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
-}
-*/
-
-function changeMainForLogin() {
+// TODO: does this even do anything?
+selfserver.viewpost.prototype.changeMainForLogin = function changeMainForLogin() {
     $("#loginText").text("User: " + getCookie("username"));
 }

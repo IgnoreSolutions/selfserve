@@ -1,39 +1,29 @@
 var editModeEnabled = false;
-vsat.global.handleLoginExternally = true;
+selfserve.global.handleLoginExternally = true;
 
-var getUrlParameter = function getUrlParameter(sParam) {
-    var sPageURL = decodeURIComponent(window.location.search.substring(1)),
-        sURLVariables = sPageURL.split('&'),
-        sParameterName,
-        i;
+selfserve.prototype.compose = {editModeEnabled = false};
 
-    for (i = 0; i < sURLVariables.length; i++) {
-        sParameterName = sURLVariables[i].split('=');
-
-        if (sParameterName[0] === sParam) {
-            return sParameterName[1] === undefined ? true : sParameterName[1];
-        }
-    }
-
-    return null;
-};
 
 window.addEventListener("load", function(event) {
     $("#edit-area").hide();
-    hideAuthorizedOnly();
-    checkLoginCookie(function() {
-        showAuthorizedOnly();
-        changeMainForLogin();
+    selfserve.auth.hideAuthorizedOnly();
+    selfserve.auth.checkLoginCookie(function() {
+        selfserve.auth.showAuthorizedOnly();
+        selfserve.compose.changeMainForLogin();
         CKEDITOR.replace('editor');
     })
 });
 
-function editMode()
+/**
+ * Checks to make sure we aren't in edit mode.
+ */
+selfserve.compose.prototype.editMode = function editMode()
 {
-    var editId = parseInt(getUrlParameter('id'));
+    var editId = parseInt(selfserve.auth.getUrlParameter('id'));
     if(editId)
     {
-        $.get(`http://vsatresq.com/blog/getpost?id=${editId}`, function (result, status) {
+        // TODO: test URL
+        $.get(`/blog/getpost?id=${editId}`, function (result, status) {
             var postObject = JSON.parse(result);
             $("#title_text").val(postObject.title);
             CKEDITOR.instances.editor.setData(unescape(decodeURI(postObject.message)));
@@ -44,44 +34,9 @@ function editMode()
         $("#editor-container").hide();
         $("#maincontentarea").html('Invalid post id to edit.');
     }
-}
+};
 
-function getCookie(cname) {
-    var name = cname + "=";
-    var decodedCookie = decodeURIComponent(document.cookie);
-    var ca = decodedCookie.split(';');
-    for (var i = 0; i < ca.length; i++) {
-        var c = ca[i];
-        while (c.charAt(0) == ' ') {
-            c = c.substring(1);
-        }
-        if (c.indexOf(name) == 0) {
-            return c.substring(name.length, c.length);
-        }
-    }
-    return "";
-}
-
-function setCookie(cname, cvalue, exdays) {
-    var d = new Date();
-    d.setTime(d.getTime() + (exdays * 24 * 60 * 60 * 1000));
-    var expires = "expires=" + d.toUTCString();
-    document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
-}
-
-function checkPower() {
-    var _username = getCookie("username");
-    var _token = getCookie("token");
-    $.post('http://vsatresq.com/blog/powercheck', {username: _username, token: _token}, function(result,status,xhr)
-    {
-        var power = xhr.getResponseHeader('Power');
-        userPower = power;
-        if(userPower == 1)
-            showAdminContent();
-    });
-}
-
-function previewButtonClick()
+selfserve.compose.prototype.previewButtonClick = function previewButtonClick()
 {
     if(vsat.global.loggedIn === false)
         return;
@@ -90,14 +45,14 @@ function previewButtonClick()
     previousHtml += `<span style='padding: 6px;'>Post by ${getCookie('username')}</span>`;
     //win.document.body.innerHTML = previousHtml + $("#editor").val();
     win.document.body.innerHTML = previousHtml + CKEDITOR.instances.editor.getData();
-}
+};
 
-function submitButtonClick()
+selfserve.compose.prototype.submitButtonClick = function submitButtonClick()
 {
-    if(vsat.global.loggedIn === false)
+    if(selfserve.global.loggedIn === false)
         return;
-    var _username = getCookie('username'),
-        _token = getCookie('token');
+    var _username = selfserve.auth.getCookie('username'),
+        _token = selfserve.auth.getCookie('token');
     var postJson = {
         title: $("#title_text").val(),
         message: CKEDITOR.instances.editor.getData(),
@@ -106,11 +61,11 @@ function submitButtonClick()
         id: undefined
     }
 
-    var url = "http://vsatresq.com/blog/post";
-    if(editModeEnabled)
+    var url = "/blog/post";
+    if(selfserve.compose.editModeEnabled)
     {
-        url = "http://vsatresq.com/blog/editpost"
-        postJson.id = parseInt(getUrlParameter('id'));
+        url = "/blog/editpost"
+        postJson.id = parseInt(selfserve.auth.getUrlParameter('id'));
     }
 
     $.post(url, postJson, function(result, status, xhr)
@@ -128,15 +83,15 @@ function submitButtonClick()
     }).fail(function(err){alert(JSON.stringify(err));});
 }
 
-function changeMainForLogin()
+selfserve.compose.prototype.changeMainForLogin = function changeMainForLogin()
 {
     $("#login-message").hide();
     $("#edit-area").show();
     $("#preview-button").show();
     $("#submit-button").show();
-    if(getUrlParameter('edit'))
+    if(selfserve.auth.getUrlParameter('edit'))
     {
         editModeEnabled = true;
-        editMode();
+        selfserve.compose.editMode();
     }
 }

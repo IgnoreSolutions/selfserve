@@ -1,36 +1,41 @@
+/**
+ * About random_banner.js
+ * 
+ * random_banner.js is a small Selfserver plugin designed to randomize the banner image shown
+ * on client side.
+ * 
+ * Created by Mike Santiago
+ * Copyright (C) 2019
+ * 
+ * DO NOT REDISTRIBUTE!!
+ */
+
+selfserve.random_banner = {};
+
 window.addEventListener("load", function(event) {
-    randomBannerImage();
+    selfserve.random_banner.randomBannerImage();
 }, false);
-
-function random() {
-    var x = Math.sin(Date.now()) * 10000;
-    return x - Math.floor(x);
-}
-
-function random(max) {
-    return (Math.floor(random(), max));
-}
 
 var __randomBannerTemplate = 
 {
     path: "../images/random/6.jpg",
     offset: { x: 0, y: -1090 }
-}
+};
 
 var __randomArrayPath = [
     __randomBannerTemplate
 ];
 
-function addImageToRandom(path, offset)
+selfserve.random_banner.addImageToRandom = function addImageToRandom(path, offset)
 {
     __randomArrayPath.push({path: path, offset: offset});
 }
 
-function randomBannerImage()
+selfserve.random_banner.randomBannerImage = function randomBannerImage()
 {
-    addImageToRandom("../images/random/7.jpg", {x: 0, y: -170});
-    addImageToRandom("../images/random/8.jpg", {x: 0, y: -1000});
-    addImageToRandom("../images/random/9.jpg", {x: 0, y: -780});
+    selfserve.random_banner.addImageToRandom("../images/random/7.jpg", {x: 0, y: -170});
+    selfserve.random_banner.addImageToRandom("../images/random/8.jpg", {x: 0, y: -1000});
+    selfserve.random_banner.addImageToRandom("../images/random/9.jpg", {x: 0, y: -780});
 
     var sizeOfPool = __randomArrayPath.length;
     var randomIndex = Math.floor(Math.random() * sizeOfPool);

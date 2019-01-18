@@ -13,7 +13,7 @@ const connectedUsers = {};
 let lastIP = "undf";
 import webSocketExpress = require('express-ws');
 import express = require('express');
-import {ServerAuth} from 'BlogBackend';
+import {ServerAuth} from 'BlogBackend_Mongo';
 
 export function useWithExpress(wsExpressInstance: webSocketExpress.Instance, app: express.Application) {
     console.log('setting up for websockets');

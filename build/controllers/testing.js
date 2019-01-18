@@ -34,34 +34,42 @@ router.post('/edituser', (req, res) => {
     const _newUserObject = req.body.new;
     const _userID = req.body.id;
     if (_userID.trim() && _newUserObject.trim()) {
-        var queryObj = mongo.query("_id", _userID);
-        if (queryObj) {
-            var newUserObj = JSON.parse(_newUserObject);
-            mongo.updateRecord(queryObj, newUserObj, (err, res) => {
-                if (err)
-                    throw err;
-                res.status(200).send("Updated.");
-            });
-        }
-        else {
-            res.status(400).send("Couldn't update user.");
-        }
+        mongo.query("_id", _userID, (err, result) => {
+            if (err)
+                throw err;
+            if (result) {
+                var queryObj = JSON.parse(result);
+                var newUserObj = JSON.parse(_newUserObject);
+                mongo.updateRecord(queryObj, newUserObj, (err, result) => {
+                    if (err)
+                        throw err;
+                    res.status(200).send("Updated.");
+                });
+            }
+            else
+                res.status(400).send("Couldn't update user.");
+        });
     }
 });
 router.get('/user', (req, res) => {
     const _byUsername = req.body.username;
     const _byId = req.body.id;
+    let verb = "_id";
+    let value = _byId;
+    if (_byUsername) {
+        verb = "username";
+        value = _byUsername;
+    }
     let resultingUser = undefined;
-    if (_byUsername) //by username
-        resultingUser = mongo.query("username", _byUsername);
-    else
-        resultingUser = mongo.query("_id", _byId);
-    if (resultingUser) {
-        res.status(200).send(JSON.stringify(resultingUser));
-    }
-    else {
-        res.status(400).send('No user found.');
-    }
+    mongo.query(verb, value, (err, result) => {
+        if (err)
+            throw err;
+        resultingUser = result;
+        if (resultingUser)
+            res.status(200).send(JSON.stringify(resultingUser));
+        else
+            res.status(400).send('No user found.');
+    });
 });
 exports.Controller = router;
 exports.Endpoint = '/TESTING';

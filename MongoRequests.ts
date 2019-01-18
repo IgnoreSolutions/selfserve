@@ -25,18 +25,18 @@ export class MongoDBInstance {
         */
     }
 
-    public query(keyName: string, keyValue: string): any {
+    public query(keyName: string, keyValue: string, callback: (err: any, result: any) => void) {
         mongo.connect(this.url, (err: any, db: any) => {
-            if(err) throw err;
+            if(err) {callback(err, null); throw err;}
             var dbo = db.db(this.currentDatabase);
             if(keyName === "_id")
                 keyValue = oid(keyValue);
             var query = {[keyName]: keyValue};
             dbo.collection(this.currentCollection).find(query).toArray((err: any, res: any) => {
-                if(err) throw err;
-                console.log(res);
+                if(err) {callback(err, null); throw err;}
+                callback(null, res[0]);
                 db.close();
-                return res;
+                return res[0];
             });
 
             db.close();
@@ -55,7 +55,7 @@ export class MongoDBInstance {
             if(byKey === "_id")
                 keyValue = oid(keyValue);
             var query = {[byKey]: keyValue};
-            console.log(query);
+            console.log("delete query: ", query);
             dbo.collection(this.currentCollection).deleteOne(query, (err: any, res: any) => {
                 console.log("send delete request");
                 db.close();

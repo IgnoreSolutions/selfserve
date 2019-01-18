@@ -31,43 +31,50 @@ class ServerAuth {
     }
     static getUserInformation(res, callback, username, id) {
         let verb = 'username';
+        let value = username;
         if (id !== undefined) {
-            verb = 'id';
+            verb = '_id';
+            value = querystring_1.stringify(id);
         }
-        let result = undefined;
-        if (username === undefined) //by ID
-            result = this.mongoBackend.query("_id", querystring_1.stringify(id));
-        else //by username
-            result = this.mongoBackend.query("username", querystring_1.stringify(username));
-        callback(result);
+        this.mongoBackend.query(verb, value, (err, res) => {
+            if (err)
+                throw err;
+            callback(res);
+        });
     }
     static getUserById(id, callback) {
-        let result = this.mongoBackend.query("_id", querystring_1.stringify(id));
-        callback(result);
+        this.mongoBackend.query("_id", querystring_1.stringify(id), (err, result) => {
+            callback(result);
+        });
     }
     static getUserByName(username, callback) {
-        let result = this.mongoBackend.query("username", username);
-        callback(result);
+        this.mongoBackend.query("username", username, (err, result) => {
+            callback(result);
+        });
     }
     static doLogin(res, username, password, callback) {
-        let result = this.mongoBackend.query("username", username);
-        if (result) {
-            if (result.username === username && result.password === password) {
-                const newToken = ServerAuth.tokenStore.generateToken(username);
-                res.set('Authorization', newToken.token);
-                res.status(200).send(`Logged in as ${username} successfully.`);
-                callback(MongoRequests_1.MongoDBStatus.OK);
+        console.log("do it");
+        this.mongoBackend.query("username", username, (err, result) => {
+            if (result) {
+                if (result.username === username && result.password === password) {
+                    const newToken = ServerAuth.tokenStore.generateToken(username);
+                    res.set('Authorization', newToken.token);
+                    res.status(200).send(result);
+                    callback(MongoRequests_1.MongoDBStatus.OK);
+                }
+                else
+                    res.status(400).send('User not found/credential mismatch. L2');
             }
-        }
-        else {
-            res.status(400).send('User not found/credential mismatch');
-            callback(MongoRequests_1.MongoDBStatus.Error, "User not found/credential mismatch. " + result);
-        }
+            else {
+                res.status(400).send('User not found/credential mismatch');
+                callback(MongoRequests_1.MongoDBStatus.Error, "User not found/credential mismatch. " + result);
+            }
+        });
     }
     static registerUser(res, username, password, email) {
         if (username.trim() && password.trim() && email.trim()) {
             let newUser = new User(-1, username, password, new Date(Date.now()), email, 3);
-            this.mongoBackend.insertRecord(newUser, (err, res) => {
+            this.mongoBackend.insertRecord(newUser, (err, result) => {
                 if (err)
                     throw err;
                 res.status(200).send(JSON.stringify(newUser));
@@ -77,14 +84,14 @@ class ServerAuth {
     static verifyUserPower(username, token, callback) {
         if (username.trim() && token.trim()) {
             if (ServerAuth.tokenStore.verifyToken(username, token)) {
-                let result = this.mongoBackend.query("username", username);
-                if (result) {
-                    if (result.username === username)
-                        callback(username, result.power);
-                }
-                else {
-                    callback(username, -1);
-                }
+                this.mongoBackend.query("username", username, (err, res) => {
+                    if (err)
+                        throw err;
+                    if (res)
+                        callback(username, res.power);
+                    else
+                        callback(username, -1);
+                });
             }
         }
     }
@@ -108,16 +115,18 @@ class ServerAuth {
     static editPost(res, userEditing, _token, updatedPost) {
         if (ServerAuth.tokenStore.verifyToken(userEditing.username, _token)) {
             this.mongoBackend.changeCollection("blog");
-            let postToBeEdited = this.mongoBackend.query("_id", querystring_1.stringify(updatedPost.id));
-            if (postToBeEdited) {
-                this.mongoBackend.updateRecord(postToBeEdited, updatedPost, (err, res) => {
-                    if (err)
-                        throw err;
-                    res.status(200).send(JSON.stringify(updatedPost));
-                });
-            }
-            else
-                res.status(400).send("Error while editing.");
+            this.mongoBackend.query("_id", querystring_1.stringify(updatedPost.id), (err, res) => {
+                if (err)
+                    throw err;
+                if (res) {
+                    let postToBeEdited = JSON.parse(res);
+                    this.mongoBackend.updateRecord(postToBeEdited, updatedPost, (err, res) => {
+                        if (err)
+                            throw err;
+                        res.status(200).send(JSON.stringify(updatedPost));
+                    });
+                }
+            });
             this.mongoBackend.changeCollection("users");
         }
     }
@@ -140,21 +149,25 @@ class ServerAuth {
     static getPostByID(postID, res) {
         try {
             this.mongoBackend.changeCollection("blog");
-            let blogPost = this.mongoBackend.query("_id", querystring_1.stringify(postID));
-            if (blogPost) {
-                this.mongoBackend.changeCollection("users");
-                let userPosting = this.mongoBackend.query("username", querystring_1.stringify(blogPost.author));
-                if (userPosting) {
-                    blogPost.author = userPosting;
-                    res.status(200).send(JSON.stringify(blogPost));
+            this.mongoBackend.query("_id", querystring_1.stringify(postID), (err, res) => {
+                if (err)
+                    throw err;
+                let blogPost = JSON.parse(res);
+                if (blogPost) {
+                    this.mongoBackend.changeCollection("users");
+                    this.mongoBackend.query("username", querystring_1.stringify(blogPost.author), (err, res2) => {
+                        if (err)
+                            throw err;
+                        let userPosting = JSON.parse(res2);
+                        if (userPosting) {
+                            blogPost.author = userPosting;
+                            res.status(200).send(JSON.stringify(blogPost));
+                        }
+                        else
+                            res.status(400).send('User posted not found');
+                    });
                 }
-                else {
-                    res.status(400).send('user who posted not found');
-                }
-            }
-            else {
-                res.status(400).send('Post not found.');
-            }
+            });
         }
         catch (exc) {
             console.log('getPostByID', exc);

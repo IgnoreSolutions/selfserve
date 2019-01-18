@@ -12,7 +12,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const connectedUsers = {};
 let lastIP = "undf";
-const BlogBackend_1 = require("BlogBackend");
+const BlogBackend_Mongo_1 = require("BlogBackend_Mongo");
 function useWithExpress(wsExpressInstance, app) {
     console.log('setting up for websockets');
     wsExpressInstance.app.ws('/app', (ws, req) => {
@@ -68,7 +68,7 @@ function handleDiff(ws, msg) {
 }
 exports.handleDiff = handleDiff;
 function handleConnect(ws, msg, _lastIP) {
-    if (BlogBackend_1.ServerAuth.tokenStore.verifyToken(msg.connect.username, msg.connect.token)) {
+    if (BlogBackend_Mongo_1.ServerAuth.tokenStore.verifyToken(msg.connect.username, msg.connect.token)) {
         Object.assign(connectedUsers, { username: msg.connect.username, ip: lastIP });
         console.log(`verified connection for ${msg.connect.username} at ${lastIP}`);
         console.log(connectedUsers);

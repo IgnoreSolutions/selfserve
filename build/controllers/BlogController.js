@@ -1,13 +1,18 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
-const BlogBackend_1 = require("../BlogBackend");
+const BlogBackend_Mongo_1 = require("../BlogBackend_Mongo");
+const MongoRequests_1 = require("../MongoRequests");
 const router = express_1.Router();
 router.post('/loginnode', (req, res) => {
-    if (req.body.username != null) {
-        BlogBackend_1.ServerAuth.doLogin(res, req.body.username, req.body.password, (status, err) => {
-            if (err) {
-                throw err;
+    console.log(req.body.username);
+    console.log(req.body.password);
+    if (req.body.username !== null) {
+        console.log("Logging in");
+        BlogBackend_Mongo_1.ServerAuth.doLogin(res, req.body.username, req.body.password, (status, err) => {
+            console.log("Request complete");
+            if (status === MongoRequests_1.MongoDBStatus.OK) {
+                console.log('logged in ok');
             }
         });
     }
@@ -16,8 +21,11 @@ router.post('/tokencheck', (req, res) => {
     if (req.body.username != null && req.body.token != null) {
         const username = req.body.username;
         const token = req.body.token;
-        if (BlogBackend_1.ServerAuth.tokenStore.verifyToken(username, token)) {
-            res.status(200).send('OK');
+        if (BlogBackend_Mongo_1.ServerAuth.tokenStore.verifyToken(username, token)) {
+            BlogBackend_Mongo_1.ServerAuth.getUserByName(username, (result) => {
+                if (result)
+                    res.status(200).send(JSON.stringify(result));
+            });
         }
         else
             res.status(401).send('Unauthorized');
@@ -36,7 +44,7 @@ router.get('/avatar', (req, res) => {
 });
 router.get('/changeavatar', (req, res) => {
     if (req.body.username.trim() && req.body.token.trim()) {
-        if (BlogBackend_1.ServerAuth.tokenStore.verifyToken(req.body.username, req.body.token)) {
+        if (BlogBackend_Mongo_1.ServerAuth.tokenStore.verifyToken(req.body.username, req.body.token)) {
             const receivedObject = JSON.parse(req.body.avatar);
             const base64Data = receivedObject.image.split(',')[1];
             require('fs').writeFile(`./html/blog/avatars/${req.body.username}.png`, base64Data, 'base64', (err) => {
@@ -60,8 +68,8 @@ router.post('/powercheck', (req, res) => {
         const _id = req.body.id;
         const _token = req.body.token;
         //TODO: double check this?
-        if (BlogBackend_1.ServerAuth.tokenStore.verifyToken(_username, _token)) {
-            BlogBackend_1.ServerAuth.getUserInformation(res, (result) => {
+        if (BlogBackend_Mongo_1.ServerAuth.tokenStore.verifyToken(_username, _token)) {
+            BlogBackend_Mongo_1.ServerAuth.getUserInformation(res, (result) => {
                 if (result !== undefined) {
                     res.set('Power', result.power.toString());
                     res.send('Check power header');
@@ -82,7 +90,7 @@ router.get('/userinfo', (req, res) => {
     let byUsername = req.query.byUsername;
     let byId = req.query.byId;
     byId !== undefined ? byUsername = undefined : byId = undefined;
-    BlogBackend_1.ServerAuth.getUserInformation(res, (result) => {
+    BlogBackend_Mongo_1.ServerAuth.getUserInformation(res, (result) => {
         if (result !== undefined) {
             res.status(200).send(JSON.stringify(result));
         }
@@ -116,7 +124,7 @@ router.post('/userlist', (req, res) => {
     const _username = req.body.username;
     const _token = req.body.token;
     if (_username.trim() && _token.trim()) {
-        if (BlogBackend_1.ServerAuth.tokenStore.verifyToken(_username, _token)) {
+        if (BlogBackend_Mongo_1.ServerAuth.tokenStore.verifyToken(_username, _token)) {
             res.status(200).send(':) wip');
             /*
             MySQLInstance.query("SELECT * FROM users", (status: SQLStatus, err: MysqlError, result: any) => {
@@ -146,13 +154,13 @@ router.post('/post', (req, res) => {
     const _title = req.body.title;
     const _email = req.body.email;
     const _token = req.body.token;
-    if (!BlogBackend_1.ServerAuth.tokenStore.verifyToken(_author, _token)) {
+    if (!BlogBackend_Mongo_1.ServerAuth.tokenStore.verifyToken(_author, _token)) {
         res.status(401).send('Unauthorised, bad token.');
         return;
     }
     let userPosting;
-    BlogBackend_1.ServerAuth.getUserByName(_author, (result) => {
-        userPosting = new BlogBackend_1.User(result.id, result.username, undefined, result.signup_date, result.email, result.power);
+    BlogBackend_Mongo_1.ServerAuth.getUserByName(_author, (result) => {
+        userPosting = new BlogBackend_Mongo_1.User(result.id, result.username, undefined, result.signup_date, result.email, result.power);
     });
     const post = {
         title: _title,
@@ -161,7 +169,7 @@ router.post('/post', (req, res) => {
         date: new Date(Date.now()),
         id: 0,
     };
-    BlogBackend_1.ServerAuth.makePost(res, userPosting, _token, post);
+    BlogBackend_Mongo_1.ServerAuth.makePost(res, userPosting, _token, post);
 });
 router.post('/editpost', (req, res) => {
     const msgID = req.body.id;
@@ -171,15 +179,15 @@ router.post('/editpost', (req, res) => {
     const _newMessage = req.body.message;
     if (msgID > 0) {
         let userEditing;
-        BlogBackend_1.ServerAuth.getUserByName(_username, (result) => {
-            userEditing = new BlogBackend_1.User(result.id, result.username, undefined, result.signup_date, result.email, result.power);
+        BlogBackend_Mongo_1.ServerAuth.getUserByName(_username, (result) => {
+            userEditing = new BlogBackend_Mongo_1.User(result.id, result.username, undefined, result.signup_date, result.email, result.power);
         });
-        if (!BlogBackend_1.ServerAuth.tokenStore.verifyToken(_username, _token)) {
+        if (!BlogBackend_Mongo_1.ServerAuth.tokenStore.verifyToken(_username, _token)) {
             res.header('Access-Control-Allow-Headers', 'true');
             res.status(401).send('Unauthorised or bad token.');
             return;
         }
-        BlogBackend_1.ServerAuth.verifyUserPower(_username, _token, (username, powerLevel) => {
+        BlogBackend_Mongo_1.ServerAuth.verifyUserPower(_username, _token, (username, powerLevel) => {
             if (powerLevel !== 1) {
                 res.status(401).send('Nope.');
                 return;
@@ -191,7 +199,7 @@ router.post('/editpost', (req, res) => {
                 date: new Date(Date.now()),
                 id: msgID,
             };
-            BlogBackend_1.ServerAuth.editPost(res, userEditing, _token, updatedPost);
+            BlogBackend_Mongo_1.ServerAuth.editPost(res, userEditing, _token, updatedPost);
         });
     }
     else {
@@ -203,18 +211,18 @@ router.post('/deletepost', (req, res) => {
     const _username = req.body.username;
     const _token = req.body.token;
     let userDeleting;
-    BlogBackend_1.ServerAuth.getUserByName(_username, (result) => { userDeleting = result; });
+    BlogBackend_Mongo_1.ServerAuth.getUserByName(_username, (result) => { userDeleting = result; });
     if (msgID > 0 && _username.trim() && _token.trim()) {
-        if (!BlogBackend_1.ServerAuth.tokenStore.verifyToken(_username, _token)) {
+        if (!BlogBackend_Mongo_1.ServerAuth.tokenStore.verifyToken(_username, _token)) {
             res.status(400).send('Nope');
             return;
         }
-        BlogBackend_1.ServerAuth.verifyUserPower(_username, _token, (username, power) => {
+        BlogBackend_Mongo_1.ServerAuth.verifyUserPower(_username, _token, (username, power) => {
             if (power !== 1) {
                 res.send(401).send('Nope');
                 return;
             }
-            BlogBackend_1.ServerAuth.deletePost(res, userDeleting, _token, msgID);
+            BlogBackend_Mongo_1.ServerAuth.deletePost(res, userDeleting, _token, msgID);
         });
     }
     else {
@@ -226,17 +234,17 @@ router.get('/getpost', (req, res) => {
     const byUsername = req.query.byUsername;
     const limit = req.query.limit;
     if (postID !== undefined && postID > 0) {
-        BlogBackend_1.ServerAuth.getPostByID(postID, res);
+        BlogBackend_Mongo_1.ServerAuth.getPostByID(postID, res);
     }
     if (byUsername !== undefined && byUsername.trim()) {
         let user;
-        BlogBackend_1.ServerAuth.getUserByName(byUsername, (result) => {
+        BlogBackend_Mongo_1.ServerAuth.getUserByName(byUsername, (result) => {
             user = result;
         });
-        BlogBackend_1.ServerAuth.getPostsByUsername(res, user, limit);
+        BlogBackend_Mongo_1.ServerAuth.getPostsByUsername(res, user, limit);
     }
     if (!postID && !byUsername) {
-        BlogBackend_1.ServerAuth.getLatestPosts(limit, res);
+        BlogBackend_Mongo_1.ServerAuth.getLatestPosts(limit, res);
     }
 });
 exports.Controller = router;

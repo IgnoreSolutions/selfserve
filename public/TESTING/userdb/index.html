@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="/css/main.css">
     <link rel="icon" type="image/png" href="./favicon.ico"/>
     <script src="node_modules/jquery/dist/jquery.js"></script>
-    <script src="/scripts/logincheck.js"></script>
+    <script src="/scripts/auth.js"></script>
     <script src="/scripts/random_banner.js"></script>
     <title>Psych Cat</title>
 </head>
@@ -18,11 +18,9 @@
     <header class="jumbotron">
         <div class="container-fluid">
             <div class="row">
-                
                 <div class="logo-container align-items-center">
                     <a href="./"><img class="logo-img" src="images/banner.png"></a>
                 </div>
-                
                 <nav class="navbar navbar-expand-md navbar-dark bg-dark w-100" id="navbar">
                     <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
                         <span class="navbar-toggler-icon"></span>
@@ -67,59 +65,7 @@
     <div class="container h-100">
         <div class="row h-100 align-items-center">
             <div id="maincontentarea" class="h-100">
-                <script>
-
-function addNewUser()
-{
-    var _username = prompt("Enter the new user's username.", "undefined");
-    var _password = "password";
-    var _email = "email@default.com";
-
-    $.post("/TESTING/adduser", {username: _username, password: _password, email: _email}, function(result, status, xhr) {
-        console.log(result);
-    });
-}
-
-function removeUser()
-{
-    var __id = prompt("Enter the ID you want to delete.", "");
-    $.post("/TESTING/removeuser", {_id: __id}, function(result, status, xhr) {
-        updateList();
-    });
-}
-
-function clearList()
-{
-    $("dt").remove();
-    $("dd").remove();
-}
-
-function updateList()
-{
-    clearList();
-
-    $.get("/TESTING/userlist", function(result, status, xhr) {
-        var asObj = JSON.parse(result);
-        asObj.forEach(element => {
-            var _user, _email, _signup, __id;
-            _user = $("<dt></dt>").text(element.username);
-            _email = $("<dd></dd>").text("- " + element.email);
-            _signup = $("<dd></dd>").text("- " + element.signup_date);
-            __id = $("<dd></dd>").text("- " + element._id);
-
-            $("#userdb_list").append(_user);
-            $("#userdb_list").append(_email);
-            $("#userdb_list").append(_signup);
-            $("#userdb_list").append(__id);
-        });
-        
-        console.log(result);
-    });
-}
-
-window.onload = function() {updateList();}
-
-</script>
+                <script src="./scripts/userdb_index.js"></script>
 
 <div class="col h-100" id="userdb_root" onload="updateList()">
     <h3>User DB Testing</h3>
@@ -130,6 +76,7 @@ window.onload = function() {updateList();}
         <button type="button" onclick="removeUser()">Remove User</button>
         <button type="button" onclick="updateList()">Reload Database</button>
     </form>
+    <p id="userdb_loggedInAsText">Not currently logged in.</p>
 </div>
             </div>
             <!--

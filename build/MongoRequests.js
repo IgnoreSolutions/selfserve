@@ -23,20 +23,24 @@ class MongoDBInstance {
         });
         */
     }
-    query(keyName, keyValue) {
+    query(keyName, keyValue, callback) {
         mongo.connect(this.url, (err, db) => {
-            if (err)
+            if (err) {
+                callback(err, null);
                 throw err;
+            }
             var dbo = db.db(this.currentDatabase);
             if (keyName === "_id")
                 keyValue = oid(keyValue);
             var query = { [keyName]: keyValue };
             dbo.collection(this.currentCollection).find(query).toArray((err, res) => {
-                if (err)
+                if (err) {
+                    callback(err, null);
                     throw err;
-                console.log(res);
+                }
+                callback(null, res[0]);
                 db.close();
-                return res;
+                return res[0];
             });
             db.close();
         });
@@ -54,7 +58,7 @@ class MongoDBInstance {
             if (byKey === "_id")
                 keyValue = oid(keyValue);
             var query = { [byKey]: keyValue };
-            console.log(query);
+            console.log("delete query: ", query);
             dbo.collection(this.currentCollection).deleteOne(query, (err, res) => {
                 console.log("send delete request");
                 db.close();

@@ -47,19 +47,20 @@ router.post('/edituser', (req: Request, res: Response) => {
 
     if(_userID.trim() && _newUserObject.trim())
     {
-        var queryObj = mongo.query("_id", _userID);
-        if(queryObj)
-        {
-            var newUserObj = JSON.parse(_newUserObject);
-            mongo.updateRecord(queryObj, newUserObj, (err: any, res: any) => {
-                if(err) throw err;
-                res.status(200).send("Updated.");
-            });            
-        }
-        else
-        {
-            res.status(400).send("Couldn't update user.");
-        }
+        mongo.query("_id", _userID, (err: any, result: any) => {
+            if(err) throw err;
+            if(result) 
+            {
+                var queryObj = JSON.parse(result);
+                var newUserObj = JSON.parse(_newUserObject);
+                mongo.updateRecord(queryObj, newUserObj, (err: any, result: any) => {
+                    if(err) throw err;
+                    res.status(200).send("Updated.");
+                });
+            }
+            else
+                res.status(400).send("Couldn't update user.");
+        });
     }
 })
 
@@ -67,20 +68,25 @@ router.get('/user', (req: Request, res: Response) => {
     const _byUsername = req.body.username;
     const _byId = req.body.id;
 
-    let resultingUser: IUser | undefined = undefined;
-    if(_byUsername) //by username
-        resultingUser = mongo.query("username", _byUsername);
-    else
-        resultingUser = mongo.query("_id", _byId);
+    let verb = "_id";
+    let value = _byId;
+    if(_byUsername)
+    {
+        verb = "username";
+        value = _byUsername;
+    }
 
-    if(resultingUser)
-    {
-        res.status(200).send(JSON.stringify(resultingUser));
-    }
-    else
-    {
-        res.status(400).send('No user found.');
-    }
+    let resultingUser: IUser | undefined = undefined;
+
+    mongo.query(verb, value, (err: any, result: any) => {
+        if(err) throw err;
+
+        resultingUser = result;
+        if(resultingUser)
+            res.status(200).send(JSON.stringify(resultingUser));
+        else
+            res.status(400).send('No user found.');
+    });
 })
 
 export const Controller: Router = router;

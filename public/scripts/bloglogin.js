@@ -1,6 +1,8 @@
+// TODO: integrate this script with auth.js
+
 
 var userPower = 0;
-vsat.global.handleLoginExternally = true;
+selfserve.global.handleLoginExternally = true;
 
 window.addEventListener("load",function(event) {
     hideAuthorizedOnly();
@@ -16,6 +18,8 @@ function changeForLogin()
     $("#maincontentarea").append(msg);
     showAuthorizedOnly();
 }
+
+
 
 function doLogin(sender) {
     var _username = document.loginform.username.value;
@@ -66,106 +70,6 @@ function populatePostsByUser()
 
     }).fail(function(err){$("#maincontentarea").append(err)});
 }
-
-/*
-function checkToken(_username, _token) {
-    $.post("http://vsatresq.com/blog/tokencheck", { username: _username, token: _token }, function (result, status, xhr) {
-        var power = xhr.getResponseHeader('Power');
-        console.log("token check status: " + status);
-        if (status == "success") {
-            loggedIn = true;
-
-        }
-        else {
-            loggedIn = false;
-        }
-    });
-    console.log("returning ");
-}
-*/
-
-/*
-function setCookie(cname, cvalue, exdays) {
-    var d = new Date();
-    d.setTime(d.getTime() + (exdays * 24 * 60 * 60 * 1000));
-    var expires = "expires=" + d.toUTCString();
-    document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
-}
-
-function getCookie(cname) {
-    var name = cname + "=";
-    var decodedCookie = decodeURIComponent(document.cookie);
-    var ca = decodedCookie.split(';');
-    for (var i = 0; i < ca.length; i++) {
-        var c = ca[i];
-        while (c.charAt(0) == ' ') {
-            c = c.substring(1);
-        }
-        if (c.indexOf(name) == 0) {
-            return c.substring(name.length, c.length);
-        }
-    }
-    return "";
-}
-*/
-
-/*
-
-function checkLoginCookie(_callback) {
-    var _username = getCookie("username");
-    var _token = getCookie("token");
-    if ($.trim(_username).length > 0) {
-        if ($.trim(_token).length > 0) {
-            $.post("../tokencheck", { username: _username, token: _token }, function (result, status, xhr) {
-                if (status == "success") {
-                    checkPower();
-                    loggedIn = true;
-                    $("form").hide();
-
-                    var msg = $("<span></span>").text(`Logged in as ${getCookie("username")}`);
-                    $("#loginText").addClass('authenticated-only').text(`User: ${getCookie('username')}`)
-                    $("#maincontentarea").append(msg);
-                    showAuthorizedContent();
-                    showAdminContent();
-                    _callback();
-                }
-                else {
-                    loggedIn = false;
-                }
-            });
-        }
-        else
-        {
-            //not logged in.
-            setCookie("username", "", 1);
-            setCookie("token", "", 1);
-        }
-    }
-    else {
-        //not logged in.
-        setCookie("username", "", 1);
-        setCookie("token", "", 1);
-    }
-}
-
-function showAuthorizedContent() {
-    $.each($('.authenticated-only'), function(i, val){
-        try {
-            $(this).show();
-        } catch (error) {
-            console.log(error);
-        }
-    });
-}
-
-
-function showAdminContent() {
-    $(".admin-only").each(function(i, obj) {
-        $(this).show();
-    })
-}
-
-*/
 
 function usercheck() {
     var _username = getCookie("username");

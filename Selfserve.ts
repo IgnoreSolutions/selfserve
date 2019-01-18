@@ -1,7 +1,7 @@
 import express = require('express');
 import bodyParser = require('body-parser');
 import http = require('http');
-import { ServerAuth } from './BlogBackend';
+import { ServerAuth } from './BlogBackend_Mongo';
 
 import * as BlogController from './controllers/BlogController';
 

@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const express = require("express");
 const bodyParser = require("body-parser");
-const BlogBackend_1 = require("./BlogBackend");
+const BlogBackend_Mongo_1 = require("./BlogBackend_Mongo");
 class Selfserver {
     constructor(_port = 3000, _staticDirectory = "public/") {
         this.port = 3000;
@@ -18,7 +18,7 @@ class Selfserver {
             next();
         });
         this.app.use(express.static(_staticDirectory, { index: '/index.html' }));
-        BlogBackend_1.ServerAuth.tokenStore.loadStore('user_tokens/store.json');
+        BlogBackend_Mongo_1.ServerAuth.tokenStore.loadStore('user_tokens/store.json');
     }
     useRouter(endpoint, route) {
         if (route !== undefined && endpoint.trim()) {
