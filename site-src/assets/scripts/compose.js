@@ -1,7 +1,7 @@
 var editModeEnabled = false;
 selfserve.global.handleLoginExternally = true;
 
-selfserve.prototype.compose = {editModeEnabled = false};
+selfserve.compose = {editModeEnabled: false};
 
 
 window.addEventListener("load", function(event) {
@@ -17,7 +17,7 @@ window.addEventListener("load", function(event) {
 /**
  * Checks to make sure we aren't in edit mode.
  */
-selfserve.compose.prototype.editMode = function editMode()
+selfserve.compose.editMode = function editMode()
 {
     var editId = parseInt(selfserve.auth.getUrlParameter('id'));
     if(editId)
@@ -36,18 +36,18 @@ selfserve.compose.prototype.editMode = function editMode()
     }
 };
 
-selfserve.compose.prototype.previewButtonClick = function previewButtonClick()
+selfserve.compose.previewButtonClick = function previewButtonClick()
 {
-    if(vsat.global.loggedIn === false)
+    if(selfserve.global.loggedIn === false)
         return;
-    var win = window.open("", "VSAT Preview", "toolbar=no,location=no,directories=no,status=no,menubar=no,scrollbars=yes,resizable=yes,width=780,height=400,top="+(screen.height-400)+",left="+(screen.width-840));
+    var win = window.open("", "Blog Post Preview", "toolbar=no,location=no,directories=no,status=no,menubar=no,scrollbars=yes,resizable=yes,width=780,height=400,top="+(screen.height-400)+",left="+(screen.width-840));
     var previousHtml = "<img width='10%' height='auto' src='https://static.licdn.com/scds/common/u/images/themes/katy/ghosts/person/ghost_person_200x200_v1.png'>";
-    previousHtml += `<span style='padding: 6px;'>Post by ${getCookie('username')}</span>`;
+    previousHtml += `<span style='padding: 6px;'>${$("#title_text").val()} by ${selfserve.auth.getCookie('username')}</span>`;
     //win.document.body.innerHTML = previousHtml + $("#editor").val();
     win.document.body.innerHTML = previousHtml + CKEDITOR.instances.editor.getData();
 };
 
-selfserve.compose.prototype.submitButtonClick = function submitButtonClick()
+selfserve.compose.submitButtonClick = function submitButtonClick()
 {
     if(selfserve.global.loggedIn === false)
         return;
@@ -83,7 +83,7 @@ selfserve.compose.prototype.submitButtonClick = function submitButtonClick()
     }).fail(function(err){alert(JSON.stringify(err));});
 }
 
-selfserve.compose.prototype.changeMainForLogin = function changeMainForLogin()
+selfserve.compose.changeMainForLogin = function changeMainForLogin()
 {
     $("#login-message").hide();
     $("#edit-area").show();

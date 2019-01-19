@@ -6,8 +6,10 @@ var mongo = require('mongodb').MongoClient;
 var oid = require('mongodb').ObjectID;
 
 export class MongoDBInstance {
-    public currentDatabase: string = "users";
-    public currentCollection: string = "db";
+
+    public currentCollection: string = "users";
+    private currentDatabase: string = "testdb";
+    
     private allowed: boolean = true;
     
     private url: string = "mongodb://localhost:27017/";
@@ -15,7 +17,7 @@ export class MongoDBInstance {
     constructor(collectionName: string, databaseName: string)
     {
         this.currentCollection = collectionName;
-        this.currentDatabase = databaseName;
+        //this.currentDatabase = databaseName;
         /*
         mongo.connect(this.url, (err: any, db: any) => {
             if(err) throw err;
@@ -68,7 +70,8 @@ export class MongoDBInstance {
         this.currentCollection = collectionName;
     }
     public changeDatabase(dbName: string) {
-        this.currentDatabase = dbName;
+        console.log("not allowed, change collection name instead.");
+        //this.currentDatabase = dbName;
     }
 
     public deleteCollection(collectionName: string) {
@@ -101,16 +104,15 @@ export class MongoDBInstance {
         });
     }
 
-    public returnN(n: number) {
+    public returnN(n: number, callback: (err: any, result: any) => void) {
         mongo.connect(this.url, (err: any, db: any) => {
             if(err) throw err;
             var dbo = db.db(this.currentDatabase);
             dbo.collection(this.currentCollection).find().limit(n).toArray((err: any, res: any) =>
             {
                 if(err) throw err;
-                console.log(res);
                 db.close();
-                return res;
+                callback(err, res);
             });
         });
     }
@@ -136,10 +138,10 @@ export class MongoDBInstance {
         mongo.connect(this.url, (err: any, db: any) => {
             if(err) throw err;
             var dbo = db.db(this.currentDatabase);
+            console.log(`getting all for ${this.currentDatabase}/${this.currentCollection}`);
             dbo.collection(this.currentCollection).find({}).toArray((err: any, res: any) =>
             {
                 if(err) throw err;
-                console.log(res);
                 callback(res);
                 db.close();
             });

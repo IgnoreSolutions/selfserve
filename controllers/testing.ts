@@ -8,13 +8,14 @@ import { ServerAuth, IUser, User, IBlogPost } from '../BlogBackend_Mongo';
 import { MongoDBInstance, MongoDBStatus } from '../MongoRequests'
 
 const router: Router = Router();
-const mongo: MongoDBInstance = new MongoDBInstance("testdb", "users");
+const mongo: MongoDBInstance = new MongoDBInstance("users", "testdb");
 
 router.get('/test', (req: Request, res: Response) => {
     res.send('Hello world');
 });
 
 router.get('/userlist', (req: Request, res: Response) => {
+    mongo.changeCollection("users");
     var returnValue = mongo.returnAll((value: any) =>
     {
         res.status(200).send(JSON.stringify(value));

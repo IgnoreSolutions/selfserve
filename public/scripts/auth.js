@@ -90,12 +90,10 @@ selfserve.auth.changeHeaderForLogin = function changeHeaderForLogin() {
 selfserve.auth.checkLoginCookie = function checkLoginCookie(callback) {
     var _username = selfserve.auth.getCookie("username");
     var _token = selfserve.auth.getCookie("token");
-    console.log(_username, _token);
     if ($.trim(_username).length > 0) {
         if ($.trim(_token).length > 0) {
             //TODO: verify this URL.
             $.post("/blog/tokencheck", { username: _username, token: _token }, function (result, status, xhr) {
-                console.log(status);
                 if (status == "success") {
                     selfserve.global.currentUser = JSON.parse(result);
 
@@ -205,6 +203,7 @@ selfserve.auth.loginAs = function loginAs(_username, _password, _remember, callb
             var _token = xhr.getResponseHeader('Authorization');
             if(status == "success")
             {
+                // TODO: strip password parameter
                 selfserve.global.currentUser = result;
                 if(callback)    callback(result, status, xhr); // TODO: does this need shit?
                 if(_remember === true)

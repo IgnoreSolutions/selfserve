@@ -7,11 +7,12 @@ const express_1 = require("express");
 const BlogBackend_Mongo_1 = require("../BlogBackend_Mongo");
 const MongoRequests_1 = require("../MongoRequests");
 const router = express_1.Router();
-const mongo = new MongoRequests_1.MongoDBInstance("testdb", "users");
+const mongo = new MongoRequests_1.MongoDBInstance("users", "testdb");
 router.get('/test', (req, res) => {
     res.send('Hello world');
 });
 router.get('/userlist', (req, res) => {
+    mongo.changeCollection("users");
     var returnValue = mongo.returnAll((value) => {
         res.status(200).send(JSON.stringify(value));
     });

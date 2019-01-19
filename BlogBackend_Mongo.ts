@@ -58,10 +58,11 @@ export abstract class ServerAuth {
 
     public static initServerAuth()
     {
-        this.mongoBackend = new MongoDBInstance("testdb", "users");
+        this.mongoBackend = new MongoDBInstance("users", "testdb");
     }
 
     public static getUserInformation(res: express.Response, callback: (result: IUser) => void, username?: string, id?: number) {
+        this.mongoBackend.changeCollection("users");
         let verb = 'username';
         let value = username!;
         if (id !== undefined) {
@@ -76,19 +77,22 @@ export abstract class ServerAuth {
     }
 
     public static getUserById(id: number, callback: (result: IUser) => void) {
+        this.mongoBackend.changeCollection("users");
         this.mongoBackend.query("_id", stringify(id), (err: any, result: any) =>{
             callback(result);
         });
     }
 
-    public static getUserByName(username: string, callback: (result: IUser) => void) {
+    public static getUserByName(username: string, callback: (resulting_obj: any) => void) {
+        this.mongoBackend.changeCollection("users");
         this.mongoBackend.query("username", username, (err: any, result: any) => {
+            if(err) throw err;
             callback(result);
         });
     }
 
     public static doLogin(res: express.Response, username: string, password: string, callback: (status: MongoDBStatus, err?: any) => void) {
-        console.log("do it");
+        this.mongoBackend.changeCollection("users");
         this.mongoBackend.query("username", username, (err: any, result: any) => {
             if (result) {
                 if (result.username === username && result.password === password) {
@@ -143,9 +147,8 @@ export abstract class ServerAuth {
             toBeInserted.author = userPosting.username;
             this.mongoBackend.insertRecord(post, (err: any, result: any) => {
                 if(err) throw err;
-                res.status(200).send(JSON.stringify(toBeInserted));
+                res.status(200).send(JSON.stringify(result));
             });
-            this.mongoBackend.changeCollection("users");
         }
     }
 
@@ -163,7 +166,6 @@ export abstract class ServerAuth {
                     });
                 }
             });
-            this.mongoBackend.changeCollection("users");
         }
     }
 
@@ -173,17 +175,22 @@ export abstract class ServerAuth {
             this.mongoBackend.changeCollection("blog");
             this.mongoBackend.delete("_id", stringify(postID));
             res.status(200).send("OK"); // TODO
-            this.mongoBackend.changeCollection("users");
         }
     }
 
     public static getLatestPosts(limit: number = 20, res: express.Response) {
         this.mongoBackend.changeCollection("blog");
-        const postsToReturn = this.mongoBackend.returnN(limit);
-        console.log(postsToReturn); // TODO:
-        console.log("TODO: this");
-        res.status(200).send(JSON.stringify(postsToReturn));
-        this.mongoBackend.changeCollection("users");
+        this.mongoBackend.returnN(limit, (err: any, result: any) => {
+            if(result === undefined)
+            {
+                console.log("No posts to return");
+                res.status(200).send("n/a");
+            }
+            else
+            {
+                res.status(200).send(JSON.stringify(result));
+            }
+        });
     }
 
     public static getPostByID(postID: number, res: express.Response) {
@@ -225,7 +232,6 @@ export abstract class ServerAuth {
         {
             res.status(400).send("Nope");
         }
-        this.mongoBackend.changeCollection("users");
         // TODO: error checking/handling
     }
 }

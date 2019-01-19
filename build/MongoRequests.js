@@ -9,12 +9,12 @@ var mongo = require('mongodb').MongoClient;
 var oid = require('mongodb').ObjectID;
 class MongoDBInstance {
     constructor(collectionName, databaseName) {
-        this.currentDatabase = "users";
-        this.currentCollection = "db";
+        this.currentCollection = "users";
+        this.currentDatabase = "testdb";
         this.allowed = true;
         this.url = "mongodb://localhost:27017/";
         this.currentCollection = collectionName;
-        this.currentDatabase = databaseName;
+        //this.currentDatabase = databaseName;
         /*
         mongo.connect(this.url, (err: any, db: any) => {
             if(err) throw err;
@@ -70,7 +70,8 @@ class MongoDBInstance {
         this.currentCollection = collectionName;
     }
     changeDatabase(dbName) {
-        this.currentDatabase = dbName;
+        console.log("not allowed, change collection name instead.");
+        //this.currentDatabase = dbName;
     }
     deleteCollection(collectionName) {
         mongo.connect(this.url, (err, db) => {
@@ -101,7 +102,7 @@ class MongoDBInstance {
             db.close();
         });
     }
-    returnN(n) {
+    returnN(n, callback) {
         mongo.connect(this.url, (err, db) => {
             if (err)
                 throw err;
@@ -109,9 +110,8 @@ class MongoDBInstance {
             dbo.collection(this.currentCollection).find().limit(n).toArray((err, res) => {
                 if (err)
                     throw err;
-                console.log(res);
                 db.close();
-                return res;
+                callback(err, res);
             });
         });
     }
@@ -136,10 +136,10 @@ class MongoDBInstance {
             if (err)
                 throw err;
             var dbo = db.db(this.currentDatabase);
+            console.log(`getting all for ${this.currentDatabase}/${this.currentCollection}`);
             dbo.collection(this.currentCollection).find({}).toArray((err, res) => {
                 if (err)
                     throw err;
-                console.log(res);
                 callback(res);
                 db.close();
             });

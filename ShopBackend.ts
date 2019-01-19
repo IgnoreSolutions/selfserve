@@ -37,6 +37,7 @@ export abstract class ShopBackend {
 
     public static initShopBackend()
     {
+        // TODO: change this name
         this.mongoBackend = new MongoDBInstance("testdb", "shop");
     }
 

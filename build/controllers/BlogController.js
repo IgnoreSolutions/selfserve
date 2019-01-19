@@ -23,8 +23,11 @@ router.post('/tokencheck', (req, res) => {
         const token = req.body.token;
         if (BlogBackend_Mongo_1.ServerAuth.tokenStore.verifyToken(username, token)) {
             BlogBackend_Mongo_1.ServerAuth.getUserByName(username, (result) => {
+                console.log("getUserByName: ", username, result);
                 if (result)
                     res.status(200).send(JSON.stringify(result));
+                else
+                    res.status(400).send("Something bad happened internally.");
             });
         }
         else
@@ -33,6 +36,7 @@ router.post('/tokencheck', (req, res) => {
     ;
 });
 router.get('/avatar', (req, res) => {
+    // TODO: all of this...
     const _username = req.query.username;
     const fs = require('fs');
     if (fs.existsSync(`./new/public/images/avatars/${_username}.png`)) {
@@ -158,18 +162,18 @@ router.post('/post', (req, res) => {
         res.status(401).send('Unauthorised, bad token.');
         return;
     }
-    let userPosting;
     BlogBackend_Mongo_1.ServerAuth.getUserByName(_author, (result) => {
-        userPosting = new BlogBackend_Mongo_1.User(result.id, result.username, undefined, result.signup_date, result.email, result.power);
+        let userPosting = result;
+        const post = {
+            title: _title,
+            message: encodeURI(_messageText),
+            author: userPosting,
+            date: new Date(Date.now()),
+            id: 0,
+        };
+        console.log(post);
+        BlogBackend_Mongo_1.ServerAuth.makePost(res, userPosting, _token, post);
     });
-    const post = {
-        title: _title,
-        message: encodeURI(_messageText),
-        author: userPosting,
-        date: new Date(Date.now()),
-        id: 0,
-    };
-    BlogBackend_Mongo_1.ServerAuth.makePost(res, userPosting, _token, post);
 });
 router.post('/editpost', (req, res) => {
     const msgID = req.body.id;
@@ -233,9 +237,11 @@ router.get('/getpost', (req, res) => {
     const postID = req.query.id;
     const byUsername = req.query.byUsername;
     const limit = req.query.limit;
-    if (postID !== undefined && postID > 0) {
+    // Get post by ID
+    if (postID !== undefined && postID >= 0) {
         BlogBackend_Mongo_1.ServerAuth.getPostByID(postID, res);
     }
+    // Get post by username
     if (byUsername !== undefined && byUsername.trim()) {
         let user;
         BlogBackend_Mongo_1.ServerAuth.getUserByName(byUsername, (result) => {
@@ -243,7 +249,9 @@ router.get('/getpost', (req, res) => {
         });
         BlogBackend_Mongo_1.ServerAuth.getPostsByUsername(res, user, limit);
     }
+    // Get latest posts
     if (!postID && !byUsername) {
+        console.log("get latest posts");
         BlogBackend_Mongo_1.ServerAuth.getLatestPosts(limit, res);
     }
 });

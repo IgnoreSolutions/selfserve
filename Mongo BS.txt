@@ -1,1 +1,1 @@
-mongod --db-path './testing/mongodb/data/db'
+mongod --dbpath './testing/mongodb/data/db'

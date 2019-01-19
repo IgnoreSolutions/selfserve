@@ -14,6 +14,7 @@ class ShopItem {
 exports.ShopItem = ShopItem;
 class ShopBackend {
     static initShopBackend() {
+        // TODO: change this name
         this.mongoBackend = new MongoRequests_1.MongoDBInstance("testdb", "shop");
     }
     static getAllItems(callback) {

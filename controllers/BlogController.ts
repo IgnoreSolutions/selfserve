@@ -27,8 +27,9 @@ router.post('/tokencheck', (req: Request, res: Response) => {
         const token = req.body.token;
         if(ServerAuth.tokenStore.verifyToken(username, token))
         {
-            ServerAuth.getUserByName(username, (result: IUser) => {
+            ServerAuth.getUserByName(username, (result: any) => {
                 if(result) res.status(200).send(JSON.stringify(result));
+                else    res.status(400).send("Something bad happened internally.");
             });
         }
         else
@@ -37,6 +38,7 @@ router.post('/tokencheck', (req: Request, res: Response) => {
 });
 
 router.get('/avatar', (req: Request, res: Response) => {
+    // TODO: all of this...
     const _username = req.query.username;
     const fs = require('fs');
     if (fs.existsSync(`./new/public/images/avatars/${_username}.png`))
@@ -169,20 +171,20 @@ router.post('/post', (req: Request, res: Response) => {
         return; 
     }
 
-    let userPosting: User | undefined;
-    ServerAuth.getUserByName(_author, (result: IUser) => {
-        userPosting = new User(result.id, result.username, undefined, result.signup_date, result.email, result.power);
-    });
+    ServerAuth.getUserByName(_author, (result: any) => {        
+        let userPosting: IUser = result;
+        const post: IBlogPost = {
+            title: _title,
+            message: encodeURI(_messageText),
+            author: userPosting!,
+            date: new Date(Date.now()),
+            id: 0,
+        };
 
-    const post: IBlogPost = {
-        title: _title,
-        message: encodeURI(_messageText),
-        author: userPosting!,
-        date: new Date(Date.now()),
-        id: 0,
-    };
-
-    ServerAuth.makePost(res, userPosting!, _token, post);
+        console.log(post);
+    
+        ServerAuth.makePost(res, userPosting!, _token, post);
+    }); 
 });
 
 router.post('/editpost', (req: Request, res: Response) => {
@@ -250,11 +252,13 @@ router.get('/getpost', (req: Request, res: Response) => {
 
     const limit: number = req.query.limit;
 
-    if (postID !== undefined && postID > 0)
+    // Get post by ID
+    if (postID !== undefined && postID >= 0)
     {
         ServerAuth.getPostByID(postID, res);
     }
 
+    // Get post by username
     if (byUsername !== undefined && byUsername.trim())
     {
         let user: IUser | undefined;
@@ -264,8 +268,10 @@ router.get('/getpost', (req: Request, res: Response) => {
         ServerAuth.getPostsByUsername(res, user!, limit);
     }
 
+    // Get latest posts
     if (!postID && !byUsername)
     {
+        console.log("get latest posts");
         ServerAuth.getLatestPosts(limit, res);
     }
 

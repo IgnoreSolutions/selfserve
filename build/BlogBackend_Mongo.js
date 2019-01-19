@@ -27,9 +27,10 @@ class User {
 exports.User = User;
 class ServerAuth {
     static initServerAuth() {
-        this.mongoBackend = new MongoRequests_1.MongoDBInstance("testdb", "users");
+        this.mongoBackend = new MongoRequests_1.MongoDBInstance("users", "testdb");
     }
     static getUserInformation(res, callback, username, id) {
+        this.mongoBackend.changeCollection("users");
         let verb = 'username';
         let value = username;
         if (id !== undefined) {
@@ -43,17 +44,21 @@ class ServerAuth {
         });
     }
     static getUserById(id, callback) {
+        this.mongoBackend.changeCollection("users");
         this.mongoBackend.query("_id", querystring_1.stringify(id), (err, result) => {
             callback(result);
         });
     }
     static getUserByName(username, callback) {
+        this.mongoBackend.changeCollection("users");
         this.mongoBackend.query("username", username, (err, result) => {
+            if (err)
+                throw err;
             callback(result);
         });
     }
     static doLogin(res, username, password, callback) {
-        console.log("do it");
+        this.mongoBackend.changeCollection("users");
         this.mongoBackend.query("username", username, (err, result) => {
             if (result) {
                 if (result.username === username && result.password === password) {
@@ -107,9 +112,8 @@ class ServerAuth {
             this.mongoBackend.insertRecord(post, (err, result) => {
                 if (err)
                     throw err;
-                res.status(200).send(JSON.stringify(toBeInserted));
+                res.status(200).send(JSON.stringify(result));
             });
-            this.mongoBackend.changeCollection("users");
         }
     }
     static editPost(res, userEditing, _token, updatedPost) {
@@ -127,7 +131,6 @@ class ServerAuth {
                     });
                 }
             });
-            this.mongoBackend.changeCollection("users");
         }
     }
     static deletePost(res, userDeleting, _token, postID) {
@@ -135,16 +138,19 @@ class ServerAuth {
             this.mongoBackend.changeCollection("blog");
             this.mongoBackend.delete("_id", querystring_1.stringify(postID));
             res.status(200).send("OK"); // TODO
-            this.mongoBackend.changeCollection("users");
         }
     }
     static getLatestPosts(limit = 20, res) {
         this.mongoBackend.changeCollection("blog");
-        const postsToReturn = this.mongoBackend.returnN(limit);
-        console.log(postsToReturn); // TODO:
-        console.log("TODO: this");
-        res.status(200).send(JSON.stringify(postsToReturn));
-        this.mongoBackend.changeCollection("users");
+        this.mongoBackend.returnN(limit, (err, result) => {
+            if (result === undefined) {
+                console.log("No posts to return");
+                res.status(200).send("n/a");
+            }
+            else {
+                res.status(200).send(JSON.stringify(result));
+            }
+        });
     }
     static getPostByID(postID, res) {
         try {
@@ -183,7 +189,6 @@ class ServerAuth {
         else {
             res.status(400).send("Nope");
         }
-        this.mongoBackend.changeCollection("users");
         // TODO: error checking/handling
     }
 }
