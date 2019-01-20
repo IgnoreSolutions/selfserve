@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const BlogBackend_Mongo_1 = require("../BlogBackend_Mongo");
 const MongoRequests_1 = require("../MongoRequests");
+const Debug_1 = require("../Debug");
 const router = express_1.Router();
 router.post('/loginnode', (req, res) => {
     console.log(req.body.username);
@@ -23,7 +24,6 @@ router.post('/tokencheck', (req, res) => {
         const token = req.body.token;
         if (BlogBackend_Mongo_1.ServerAuth.tokenStore.verifyToken(username, token)) {
             BlogBackend_Mongo_1.ServerAuth.getUserByName(username, (result) => {
-                console.log("getUserByName: ", username, result);
                 if (result)
                     res.status(200).send(JSON.stringify(result));
                 else
@@ -169,10 +169,12 @@ router.post('/post', (req, res) => {
             message: encodeURI(_messageText),
             author: userPosting,
             date: new Date(Date.now()),
-            id: 0,
         };
-        console.log(post);
-        BlogBackend_Mongo_1.ServerAuth.makePost(res, userPosting, _token, post);
+        BlogBackend_Mongo_1.ServerAuth.makePost(res, userPosting, _token, post, (err, res) => {
+            // err is already thrown in ServerAuth.makePost.
+            res.header('PostID', res._id);
+            res.status(200).send(JSON.stringify(res));
+        });
     });
 });
 router.post('/editpost', (req, res) => {
@@ -184,7 +186,7 @@ router.post('/editpost', (req, res) => {
     if (msgID > 0) {
         let userEditing;
         BlogBackend_Mongo_1.ServerAuth.getUserByName(_username, (result) => {
-            userEditing = new BlogBackend_Mongo_1.User(result.id, result.username, undefined, result.signup_date, result.email, result.power);
+            userEditing = new BlogBackend_Mongo_1.User(result.username, undefined, result.signup_date, result.email, result.power);
         });
         if (!BlogBackend_Mongo_1.ServerAuth.tokenStore.verifyToken(_username, _token)) {
             res.header('Access-Control-Allow-Headers', 'true');
@@ -201,9 +203,13 @@ router.post('/editpost', (req, res) => {
                 message: encodeURI(_newMessage),
                 author: userEditing,
                 date: new Date(Date.now()),
-                id: msgID,
             };
-            BlogBackend_Mongo_1.ServerAuth.editPost(res, userEditing, _token, updatedPost);
+            BlogBackend_Mongo_1.ServerAuth.editPost(res, userEditing, _token, updatedPost, msgID, (err, finalResult) => {
+                if (finalResult != undefined) {
+                    Debug_1.DebugConsole.Write(finalResult);
+                    res.status(200).send(JSON.stringify(finalResult));
+                }
+            });
         });
     }
     else {
@@ -238,9 +244,13 @@ router.get('/getpost', (req, res) => {
     const byUsername = req.query.byUsername;
     const limit = req.query.limit;
     // Get post by ID
-    if (postID !== undefined && postID >= 0) {
-        BlogBackend_Mongo_1.ServerAuth.getPostByID(postID, res);
+    if (postID !== undefined) {
+        BlogBackend_Mongo_1.ServerAuth.getPostByID(postID, res, (err, resultingPost) => {
+            Debug_1.DebugConsole.Write(resultingPost);
+            res.status(200).send(JSON.stringify(resultingPost));
+        });
     }
+    // TODO: fix these to use callbacks and shit
     // Get post by username
     if (byUsername !== undefined && byUsername.trim()) {
         let user;

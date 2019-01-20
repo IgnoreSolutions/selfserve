@@ -1,3 +1,5 @@
+import { DebugConsole, DebugSeverity } from "./Debug";
+
 export enum MongoDBStatus {
     OK, Error
 }
@@ -34,6 +36,7 @@ export class MongoDBInstance {
             if(keyName === "_id")
                 keyValue = oid(keyValue);
             var query = {[keyName]: keyValue};
+            DebugConsole.Write(DebugSeverity.DEBUG, `${this.currentDatabase}.${this.currentCollection}.query(${JSON.stringify(query)});`);
             dbo.collection(this.currentCollection).find(query).toArray((err: any, res: any) => {
                 if(err) {callback(err, null); throw err;}
                 callback(null, res[0]);
@@ -67,7 +70,9 @@ export class MongoDBInstance {
     }
 
     public changeCollection(collectionName: string) {
+        DebugConsole.Writeq(`Collection Change: ${this.currentCollection} -> ${collectionName}`);
         this.currentCollection = collectionName;
+        DebugConsole.Writeq(`this.currentCollection = ${collectionName}`);
     }
     public changeDatabase(dbName: string) {
         console.log("not allowed, change collection name instead.");

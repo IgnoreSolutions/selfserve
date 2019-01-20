@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+const Debug_1 = require("./Debug");
 var MongoDBStatus;
 (function (MongoDBStatus) {
     MongoDBStatus[MongoDBStatus["OK"] = 0] = "OK";
@@ -33,6 +34,7 @@ class MongoDBInstance {
             if (keyName === "_id")
                 keyValue = oid(keyValue);
             var query = { [keyName]: keyValue };
+            Debug_1.DebugConsole.Write(Debug_1.DebugSeverity.DEBUG, `${this.currentDatabase}.${this.currentCollection}.query(${JSON.stringify(query)});`);
             dbo.collection(this.currentCollection).find(query).toArray((err, res) => {
                 if (err) {
                     callback(err, null);
@@ -67,7 +69,9 @@ class MongoDBInstance {
         });
     }
     changeCollection(collectionName) {
+        Debug_1.DebugConsole.Writeq(`Collection Change: ${this.currentCollection} -> ${collectionName}`);
         this.currentCollection = collectionName;
+        Debug_1.DebugConsole.Writeq(`this.currentCollection = ${collectionName}`);
     }
     changeDatabase(dbName) {
         console.log("not allowed, change collection name instead.");

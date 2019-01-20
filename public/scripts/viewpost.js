@@ -10,14 +10,14 @@
  * DO NOT REDISTRIBUTE!
  */
 
-selfserve.prototype.viewpost = {
-    globalPostObject = undefined,
-    titleSuffix = "Psych Cat Blog"
+selfserve.viewpost = {
+    globalPostObject: undefined,
+    titleSuffix: "Psych Cat Blog"
 };
 
 window.onload = function () {
-    if (getUrlParameter('id')) {
-        var postID = parseInt(selfserve.auth.getUrlParameter('id'))
+    if (selfserve.auth.getUrlParameter('id')) {
+        var postID = selfserve.auth.getUrlParameter('id');
         selfserve.viewpost.getPost(postID);
         selfserve.auth.checkPower();
     }
@@ -29,7 +29,7 @@ window.onload = function () {
  * Retrieves a post and anything needed along with it given a valid 
  * PostID.
  */
-selfserve.viewpost.prototype.getPost = function getPost(postID) {
+selfserve.viewpost.getPost = function getPost(postID) {
     $.get(`/blog/getpost?id=${postID}`, function (result, status) {
         var postObject = JSON.parse(result);
         globalPostObject = postObject;
@@ -85,25 +85,25 @@ selfserve.viewpost.prototype.getPost = function getPost(postID) {
     });
 };
 
-selfserver.viewpost.prototype.showAdminContent = function showAdminContent() {
+selfserve.viewpost.showAdminContent = function showAdminContent() {
     
     $("#deletebutton").show();
     //$("#editbutton").show();
 }
 
-selfserver.viewpost.prototype.editButtonClicked = function editButtonClicked() {
-    var _username = selfserver.auth.getCookie("username");
-    var _token = selfserver.auth.getCookie("token");
-    var _msgID = getUrlParameter('id');
+selfserve.viewpost.editButtonClicked = function editButtonClicked() {
+    var _username = selfserve.auth.getCookie("username");
+    var _token = selfserve.auth.getCookie("token");
+    var _msgID = selfserve.auth.getUrlParameter('id');
 
     window.location.href = `/blog/compose?edit=true&id=${_msgID}`;
 }
 
-selfserver.viewpost.prototype.deleteButtonClicked = function deleteButtonClicked() {
+selfserve.viewpost.deleteButtonClicked = function deleteButtonClicked() {
     if (confirm(`Are you sure you want to delete this post? This cannot be undone or recovered.`)) {
         var _username = getCookie("username");
         var _token = getCookie("token");
-        $.post('/blog/deletepost', { id: parseInt(getUrlParameter('id')), username: _username, token: _token }, function (result, status, xhr) {
+        $.post('/blog/deletepost', { id: selfserve.auth.getUrlParameter('id'), username: _username, token: _token }, function (result, status, xhr) {
             if (status == "success") {
                 $("#post").hide();
                 $("#maincontentarea").append('The post has been deleted successfully.');
@@ -116,6 +116,6 @@ selfserver.viewpost.prototype.deleteButtonClicked = function deleteButtonClicked
 }
 
 // TODO: does this even do anything?
-selfserver.viewpost.prototype.changeMainForLogin = function changeMainForLogin() {
+selfserve.viewpost.changeMainForLogin = function changeMainForLogin() {
     $("#loginText").text("User: " + getCookie("username"));
 }

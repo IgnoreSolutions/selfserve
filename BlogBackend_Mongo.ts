@@ -5,6 +5,9 @@ import { MongoDBInstance, MongoDBStatus } from "./MongoRequests";
 import { isBuffer } from "util";
 import { stringify } from "querystring";
 import { json } from "body-parser";
+import { DebugConsole, DebugSeverity } from "./Debug";
+
+var oid = require('mongodb').ObjectID;
 
 var fx = require("money");
 
@@ -14,26 +17,26 @@ export enum UserPower {
 }
 
 export class User implements IUser {
-    public id: number;
+    public _id: any = -1;
     public username: string;
     public signup_date: Date;
     public email: string;
     public power: UserPower;
     public password: string | undefined = undefined;
 
-    constructor(_id: number, _username: string, _password: string | undefined, _signup_date: Date, _email: string, _power: UserPower) {
-        this.id = -1;
+    constructor(_username: string, _password: string | undefined, _signup_date: Date, _email: string, _power: UserPower) {
         this.username = _username; this.password = _password!; this.signup_date = _signup_date; this.email = _email; this.power = _power;
     }
 }
 
 export interface IUser {
-    id: number;
     username: string;
     password: string | undefined;
     signup_date: Date;
     email: string;
     power: UserPower;
+
+    //_id: any;
 }
 
 export interface IBlogPost {
@@ -42,10 +45,8 @@ export interface IBlogPost {
     author: IUser | string;
     date: Date;
 
-    /**
-     * Post ID
-     */
-    id: number;
+    // TODO figure out a logical way to get/store/generate Mongo oids?
+    //_id: any;
 }
 
 
@@ -114,7 +115,7 @@ export abstract class ServerAuth {
     public static registerUser(res: express.Response, username: string, password: string, email: string) {
         if (username.trim() && password.trim() && email.trim())
         {
-            let newUser: IUser = new User(-1, username, password, new Date(Date.now()), email, 3);
+            let newUser: IUser = new User(username, password, new Date(Date.now()), email, 3);
             this.mongoBackend.insertRecord(newUser, (err: any, result: any) => {
                 if(err) throw err;
                 res.status(200).send(JSON.stringify(newUser));
@@ -138,7 +139,7 @@ export abstract class ServerAuth {
         return Math.floor(Math.random() * Math.floor(maxValue));
     }
 
-    public static makePost(res: express.Response, userPosting: IUser, _token: string, post: IBlogPost): void {
+    public static makePost(res: express.Response, userPosting: IUser, _token: string, post: IBlogPost, callback: (err: any, result: any) => void): void {
         if(ServerAuth.tokenStore.verifyToken(userPosting.username, _token))
         {
             this.mongoBackend.changeCollection("blog");
@@ -147,22 +148,24 @@ export abstract class ServerAuth {
             toBeInserted.author = userPosting.username;
             this.mongoBackend.insertRecord(post, (err: any, result: any) => {
                 if(err) throw err;
-                res.status(200).send(JSON.stringify(result));
+                callback(err, result);
+                DebugConsole.Write(result);
+                //
             });
         }
     }
 
-    public static editPost(res: express.Response, userEditing: IUser, _token: string, updatedPost: IBlogPost) {
+    public static editPost(res: express.Response, userEditing: IUser, _token: string, updatedPost: IBlogPost, __id: any, callback: (err: any, res: any) => void) {
         if(ServerAuth.tokenStore.verifyToken(userEditing.username, _token))
         {
             this.mongoBackend.changeCollection("blog");
-            this.mongoBackend.query("_id", stringify(updatedPost.id), (err: any, res: any) => {
+            this.mongoBackend.query("_id", stringify(__id), (err: any, res: any) => {
                 if(err) throw err;
                 if(res) {
                     let postToBeEdited: IBlogPost = JSON.parse(res);
-                    this.mongoBackend.updateRecord(postToBeEdited, updatedPost, (err: any, res: any) => {
+                    this.mongoBackend.updateRecord(postToBeEdited, updatedPost, (err: any, finalResult: any) => {
                         if(err) throw err;
-                        res.status(200).send(JSON.stringify(updatedPost));
+                        callback(err, finalResult);
                     });
                 }
             });
@@ -193,25 +196,26 @@ export abstract class ServerAuth {
         });
     }
 
-    public static getPostByID(postID: number, res: express.Response) {
+    public static getPostByID(postID: string, res: express.Response, callback: (err: any, result: any) => void) {
         try
         {
             this.mongoBackend.changeCollection("blog");
-            this.mongoBackend.query("_id", stringify(postID), (err: any, res: any) => {
+            this.mongoBackend.query("_id", postID, (err: any, resultingPost: any) => {
+                DebugConsole.Write(DebugSeverity.DEBUG, "queried for post with _id ", postID);
                 if(err) throw err;
-                let blogPost: IBlogPost = JSON.parse(res);
-                if(blogPost) {
+                DebugConsole.Write(resultingPost);
+                if(resultingPost) {
                     this.mongoBackend.changeCollection("users");
-                    this.mongoBackend.query("username", stringify(blogPost.author), (err: any, res2: any) => {
+                    DebugConsole.Write(DebugSeverity.DEBUG, "now querying for author with username ", resultingPost.author);
+                    this.mongoBackend.query("username", stringify(resultingPost.author), (err: any, userPosting: any) => {
                         if(err) throw err;
-                        let userPosting: IUser = JSON.parse(res2);
                         if(userPosting)
                         {
-                            blogPost.author = userPosting;
-                            res.status(200).send(JSON.stringify(blogPost));
+                            resultingPost.author = userPosting;
+                            callback(err, resultingPost);
                         }
                         else
-                            res.status(400).send('User posted not found');
+                            callback(err, 'User posted not found');
                     });
                 }
             });

@@ -7,6 +7,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const TokenStore_1 = __importDefault(require("./TokenStore"));
 const MongoRequests_1 = require("./MongoRequests");
 const querystring_1 = require("querystring");
+const Debug_1 = require("./Debug");
+var oid = require('mongodb').ObjectID;
 var fx = require("money");
 var UserPower;
 (function (UserPower) {
@@ -14,9 +16,9 @@ var UserPower;
     UserPower[UserPower["User"] = 2] = "User";
 })(UserPower = exports.UserPower || (exports.UserPower = {}));
 class User {
-    constructor(_id, _username, _password, _signup_date, _email, _power) {
+    constructor(_username, _password, _signup_date, _email, _power) {
+        this._id = -1;
         this.password = undefined;
-        this.id = -1;
         this.username = _username;
         this.password = _password;
         this.signup_date = _signup_date;
@@ -78,7 +80,7 @@ class ServerAuth {
     }
     static registerUser(res, username, password, email) {
         if (username.trim() && password.trim() && email.trim()) {
-            let newUser = new User(-1, username, password, new Date(Date.now()), email, 3);
+            let newUser = new User(username, password, new Date(Date.now()), email, 3);
             this.mongoBackend.insertRecord(newUser, (err, result) => {
                 if (err)
                     throw err;
@@ -103,7 +105,7 @@ class ServerAuth {
     static getRandomInt(maxValue) {
         return Math.floor(Math.random() * Math.floor(maxValue));
     }
-    static makePost(res, userPosting, _token, post) {
+    static makePost(res, userPosting, _token, post, callback) {
         if (ServerAuth.tokenStore.verifyToken(userPosting.username, _token)) {
             this.mongoBackend.changeCollection("blog");
             let toBeInserted = post;
@@ -112,22 +114,24 @@ class ServerAuth {
             this.mongoBackend.insertRecord(post, (err, result) => {
                 if (err)
                     throw err;
-                res.status(200).send(JSON.stringify(result));
+                callback(err, result);
+                Debug_1.DebugConsole.Write(result);
+                //
             });
         }
     }
-    static editPost(res, userEditing, _token, updatedPost) {
+    static editPost(res, userEditing, _token, updatedPost, __id, callback) {
         if (ServerAuth.tokenStore.verifyToken(userEditing.username, _token)) {
             this.mongoBackend.changeCollection("blog");
-            this.mongoBackend.query("_id", querystring_1.stringify(updatedPost.id), (err, res) => {
+            this.mongoBackend.query("_id", querystring_1.stringify(__id), (err, res) => {
                 if (err)
                     throw err;
                 if (res) {
                     let postToBeEdited = JSON.parse(res);
-                    this.mongoBackend.updateRecord(postToBeEdited, updatedPost, (err, res) => {
+                    this.mongoBackend.updateRecord(postToBeEdited, updatedPost, (err, finalResult) => {
                         if (err)
                             throw err;
-                        res.status(200).send(JSON.stringify(updatedPost));
+                        callback(err, finalResult);
                     });
                 }
             });
@@ -152,25 +156,26 @@ class ServerAuth {
             }
         });
     }
-    static getPostByID(postID, res) {
+    static getPostByID(postID, res, callback) {
         try {
             this.mongoBackend.changeCollection("blog");
-            this.mongoBackend.query("_id", querystring_1.stringify(postID), (err, res) => {
+            this.mongoBackend.query("_id", postID, (err, resultingPost) => {
+                Debug_1.DebugConsole.Write(Debug_1.DebugSeverity.DEBUG, "queried for post with _id ", postID);
                 if (err)
                     throw err;
-                let blogPost = JSON.parse(res);
-                if (blogPost) {
+                Debug_1.DebugConsole.Write(resultingPost);
+                if (resultingPost) {
                     this.mongoBackend.changeCollection("users");
-                    this.mongoBackend.query("username", querystring_1.stringify(blogPost.author), (err, res2) => {
+                    Debug_1.DebugConsole.Write(Debug_1.DebugSeverity.DEBUG, "now querying for author with username ", resultingPost.author);
+                    this.mongoBackend.query("username", querystring_1.stringify(resultingPost.author), (err, userPosting) => {
                         if (err)
                             throw err;
-                        let userPosting = JSON.parse(res2);
                         if (userPosting) {
-                            blogPost.author = userPosting;
-                            res.status(200).send(JSON.stringify(blogPost));
+                            resultingPost.author = userPosting;
+                            callback(err, resultingPost);
                         }
                         else
-                            res.status(400).send('User posted not found');
+                            callback(err, 'User posted not found');
                     });
                 }
             });

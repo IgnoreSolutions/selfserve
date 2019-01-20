@@ -162,8 +162,8 @@ selfserve.auth.setCookie = function setCookie(cname, cvalue, exdays) {
 
 /**
  * Helper function to verify the power of the user. (Able to post or make modifications)
+ * TODO: add callback and change this to generic function instead of specific
  */
-// TODO: add callback and change this to generic function instead of specific
 selfserve.auth.checkPower = function checkPower() {
     var _username = selfserve.auth.getCookie("username");
     var _token = selfserve.auth.getCookie("token");

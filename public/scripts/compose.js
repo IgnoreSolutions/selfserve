@@ -76,9 +76,9 @@ selfserve.compose.submitButtonClick = function submitButtonClick()
             var newPostID = xhr.getResponseHeader('PostID');
             $("#editorcontainer").hide();
             if(editModeEnabled)
-                $("#maincontentarea").html(`Post was edited successfully! <a href='../viewpost?id=${newPostID}'>Check it out here!</a>`);
+                $("#maincontentarea").html(`Post was edited successfully! <a href='../getpost?id=${newPostID}'>Check it out here!</a>`);
             else
-                $("#maincontentarea").html(`Post was made successfully! <a href='../viewpost?id=${newPostID}'>Check it out here!</a>`)
+                $("#maincontentarea").html(`Post was made successfully! <a href='../getpost?id=${newPostID}'>Check it out here!</a>`)
         }
     }).fail(function(err){alert(JSON.stringify(err));});
 }

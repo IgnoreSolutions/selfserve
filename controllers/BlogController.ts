@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { ServerAuth, IUser, User, IBlogPost } from '../BlogBackend_Mongo';
 import expressWs = require('express-ws');
 import { MongoDBStatus } from '../MongoRequests';
+import { DebugConsole } from '../Debug';
 
 const router: Router = Router();
 
@@ -178,12 +179,13 @@ router.post('/post', (req: Request, res: Response) => {
             message: encodeURI(_messageText),
             author: userPosting!,
             date: new Date(Date.now()),
-            id: 0,
         };
-
-        console.log(post);
     
-        ServerAuth.makePost(res, userPosting!, _token, post);
+        ServerAuth.makePost(res, userPosting!, _token, post, (err: any, res: any) => {
+            // err is already thrown in ServerAuth.makePost.
+            res.header('PostID', res._id);
+            res.status(200).send(JSON.stringify(res));
+        });
     }); 
 });
 
@@ -197,7 +199,7 @@ router.post('/editpost', (req: Request, res: Response) => {
     if (msgID > 0) {
         let userEditing: User | undefined;
         ServerAuth.getUserByName(_username, (result: IUser) => {
-            userEditing = new User(result.id, result.username, undefined, result.signup_date, result.email, result.power);
+            userEditing = new User(result.username, undefined, result.signup_date, result.email, result.power);
         });
         if (!ServerAuth.tokenStore.verifyToken(_username, _token)) {
             res.header('Access-Control-Allow-Headers', 'true');
@@ -212,10 +214,15 @@ router.post('/editpost', (req: Request, res: Response) => {
                 message: encodeURI(_newMessage),
                 author: userEditing!,
                 date: new Date(Date.now()),
-                id: msgID,
             };
 
-            ServerAuth.editPost(res, userEditing!, _token, updatedPost);
+            ServerAuth.editPost(res, userEditing!, _token, updatedPost, msgID, (err: any, finalResult: any) => {
+                if(finalResult != undefined)
+                {
+                    DebugConsole.Write(finalResult);
+                    res.status(200).send(JSON.stringify(finalResult));
+                }
+            });
         });
     }
     else
@@ -247,17 +254,21 @@ router.post('/deletepost', (req: Request, res: Response) => {
 });
 
 router.get('/getpost', (req: Request, res: Response) => {
-    const postID: number = req.query.id;
+    const postID: any = req.query.id;
     const byUsername: string = req.query.byUsername;
 
     const limit: number = req.query.limit;
 
     // Get post by ID
-    if (postID !== undefined && postID >= 0)
+    if (postID !== undefined)
     {
-        ServerAuth.getPostByID(postID, res);
+        ServerAuth.getPostByID(postID, res, (err: any, resultingPost: any) => {
+            DebugConsole.Write(resultingPost);
+            res.status(200).send(JSON.stringify(resultingPost));
+        });
     }
 
+    // TODO: fix these to use callbacks and shit
     // Get post by username
     if (byUsername !== undefined && byUsername.trim())
     {
